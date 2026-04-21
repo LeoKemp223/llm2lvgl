@@ -3,7 +3,7 @@
   "page_id": "stitch_smart_home_panel",
   "page_name": "Stitch Smart Home Panel",
   "input": {
-    "source_type": "html",
+    "source_type": "reference_only",
     "html_entry": "input/index.html",
     "assets_dir": "input/assets",
     "notes_file": "input/notes.md"
@@ -52,7 +52,7 @@
     "legacy_page_flow_task": null
   },
   "notes": [
-    "This task converts the stitch_smart_home_panel HTML into a simulator-ready LVGL page.",
-    "The implementation now runs the simulator itself at 480x480 to match the original panel."
+    "Handwritten LVGL implementation based on the stitch smart home panel reference.",
+    "This task is frozen as reference_only so run/generate no longer overwrite its generated files."
   ]
 }

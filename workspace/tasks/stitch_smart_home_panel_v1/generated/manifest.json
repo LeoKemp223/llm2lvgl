@@ -7,9 +7,9 @@
     "width": 480,
     "height": 480
   },
-  "driver": "rule_based_html_v1",
+  "driver": "handwritten_v1",
   "html_title": "",
-  "item_count": 24,
+  "item_count": 0,
   "output_c": "generated/stitch_smart_home_panel_page.c",
   "output_h": "generated/stitch_smart_home_panel_page.h"
 }

@@ -1,44 +1,20 @@
-# Codegen Prompt For Stitch Smart Home Panel
+# Handwritten Implementation For Stitch Smart Home Panel
 
 ## Task
 - task_id: `stitch_smart_home_panel_v1`
 - page_id: `stitch_smart_home_panel`
 - page_name: `Stitch Smart Home Panel`
 
-## Target
-- viewport: `480x480`
-- profile: `sim_480x480`
-- color_depth: `32`
-- language: `en-US`
+## Status
+- This task is now treated as a handwritten LVGL page.
+- `input/index.html` remains as source reference only.
+- `tools/m1-generate-page.py` skips regeneration because `input.source_type = reference_only`.
 
-## Generation Constraints
-- allow_freetype: `True`
-- allow_filesystem_assets: `False`
-- component_mode: `portable`
-
-## Extracted HTML Content
-- html_title: ``
-- h1: `Good Morning`
-- p: `08:42 AM`
-- p: `72°F Sunny`
-- button: `sensors`
-- button: `add`
-- button: `remove`
-- switch: ``
-- h3: `Main Lights`
-- p: `80% Brightness`
-- slider: ``
-- h3: `Security`
-- p: `All sensors active`
-- button: `SETTINGS`
-- h3: `Living Windows`
-- p: `Blinds 40% open`
-- button: `OPEN`
-- button: `CLOSE`
-- p: `Quick Scenes`
-- button: `Home`
-- button: `Away`
-- button: `Sleep`
-- button: `Home`
-- button: `Climate`
-- button: `Lights`
+## Intent
+- Preserve the visual structure of the original dashboard:
+  - top app bar
+  - thermostat hero card
+  - lights and security cards
+  - window controls row
+  - quick scenes pills
+  - bottom navigation

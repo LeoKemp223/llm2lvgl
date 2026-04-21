@@ -926,9 +926,17 @@ def main() -> int:
     task_path = Path(args.task).resolve()
     task = load_json(task_path)
     profile = load_json(resolve(task_path, task["target"]["profile"]))
+    source_type = task.get("input", {}).get("source_type", "html")
     html_path = resolve(task_path, task["input"]["html_entry"])
     output_h = resolve(task_path, task["generation"]["output_h"])
     output_c = resolve(task_path, task["generation"]["output_c"])
+
+    if source_type == "reference_only":
+        if output_h.is_file() and output_c.is_file():
+            print(f"Skipping generation for handwritten task: {task_path}")
+            print(f"Using existing source: {output_c}")
+            return 0
+        raise SystemExit(f"Handwritten task is missing generated files: {output_c} / {output_h}")
 
     if not html_path.is_file():
         raise SystemExit(f"HTML input not found: {html_path}")
