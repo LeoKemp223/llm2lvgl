@@ -93,6 +93,8 @@ def main() -> int:
 
     env = os.environ.copy()
     env["M1_PAGE"] = page_id
+    env["M1_VIEWPORT_WIDTH"] = str(int(task["target"]["viewport"]["width"]))
+    env["M1_VIEWPORT_HEIGHT"] = str(int(task["target"]["viewport"]["height"]))
     run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "screenshot", str(current_path)], env=env)
     run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "screenshot-full", str(full_path)], env=env)
 

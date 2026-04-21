@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-low": "#f3f4f5",
+                      "surface-dim": "#d9dadb",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#c73f00",
+                      "surface-container": "#edeeef",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#ffefeb",
+                      "tertiary-fixed-dim": "#ffb59d",
+                      "on-tertiary-fixed-variant": "#832700",
+                      "outline-variant": "#c2c6d9",
+                      "on-tertiary-fixed": "#390c00",
+                      "tertiary-fixed": "#ffdbd0",
+                      "surface-container-highest": "#e1e3e4",
+                      "inverse-surface": "#2e3132",
+                      "secondary": "#435ba2",
+                      "secondary-fixed-dim": "#b4c5ff",
+                      "secondary-fixed": "#dbe1ff",
+                      "primary": "#004bca",
+                      "error": "#ba1a1a",
+                      "on-primary-container": "#f1f2ff",
+                      "surface": "#f8f9fa",
+                      "outline": "#737687",
+                      "on-secondary-container": "#274187",
+                      "on-surface": "#191c1d",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "surface-variant": "#e1e3e4",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed": "#00174b",
+                      "primary-fixed": "#dbe1ff",
+                      "on-primary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-container-high": "#e7e8e9",
+                      "surface-bright": "#f8f9fa",
+                      "tertiary": "#9d3000",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "on-secondary-fixed-variant": "#294388",
+                      "primary-container": "#0061ff",
+                      "surface-tint": "#0052dc",
+                      "background": "#f8f9fa",
+                      "inverse-on-surface": "#f0f1f2",
+                      "on-primary-fixed": "#00174b",
+                      "on-surface-variant": "#424656",
+                      "on-tertiary": "#ffffff",
+                      "inverse-primary": "#b4c5ff",
+                      "secondary-container": "#99b1fe",
+                      "on-background": "#191c1d"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-headline { font-family: 'Manrope', sans-serif; }
+        /* Hide scrollbars for the 480x480 experience */
+        ::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface flex items-center justify-center min-h-screen">
+<!-- 480x480 Main Panel Container -->
+<div class="w-[480px] h-[480px] bg-surface relative overflow-hidden flex flex-col shadow-2xl">
+<!-- TopAppBar (Mapped from JSON) -->
+<header class="bg-[#f8f9fa] dark:bg-[#191c1d] flex justify-between items-center w-full px-4 h-14 shrink-0 z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#0061ff]" data-icon="home_pin">home_pin</span>
+<h1 class="font-['Manrope'] font-semibold tracking-tight text-[#191c1d] text-base">Good Morning</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="text-right mr-1">
+<p class="font-headline text-xs font-bold leading-tight">08:42 AM</p>
+<p class="font-body text-[10px] text-on-surface-variant leading-tight">72°F Sunny</p>
+</div>
+<button class="hover:bg-[#ffffff]/50 p-1.5 rounded-full transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-[#0061ff]" data-icon="sensors">sensors</span>
+</button>
+</div>
+</header>
+<!-- Main Dashboard Canvas -->
+<main class="flex-1 overflow-y-auto px-4 pb-20 pt-2 no-scrollbar">
+<!-- Architectural Lucidity: Bento Grid Layout -->
+<div class="grid grid-cols-2 gap-3">
+<!-- Thermostat Card (Asymmetric Span) -->
+<section class="col-span-2 bg-surface-container-lowest rounded-xl p-4 flex items-center justify-between shadow-sm">
+<div class="flex flex-col">
+<span class="label-sm text-[10px] font-bold uppercase tracking-wider text-primary mb-1">Thermostat</span>
+<div class="flex items-baseline gap-1">
+<span class="font-headline text-4xl font-extrabold tracking-tighter text-on-surface">72</span>
+<span class="font-headline text-xl font-bold text-on-surface-variant">°F</span>
+</div>
+<span class="text-[11px] text-on-surface-variant mt-1">Heating to 74°F</span>
+</div>
+<div class="flex flex-col gap-2">
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+</section>
+<!-- Lights Card -->
+<section class="bg-surface-container-lowest rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+<div class="w-8 h-4 bg-primary rounded-full relative">
+<div class="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full"></div>
+</div>
+</div>
+<div>
+<h3 class="font-headline text-sm font-bold text-on-surface">Main Lights</h3>
+<p class="text-[11px] text-on-surface-variant">80% Brightness</p>
+</div>
+<!-- Slider Component -->
+<div class="w-full h-1.5 bg-surface-container rounded-full relative overflow-hidden">
+<div class="absolute inset-0 bg-primary w-[80%] rounded-full"></div>
+</div>
+</section>
+<!-- Security Card -->
+<section class="bg-surface-container-lowest rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-tertiary/10 rounded-lg">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<span class="text-[10px] font-bold text-tertiary uppercase">Armed</span>
+</div>
+<div>
+<h3 class="font-headline text-sm font-bold text-on-surface">Security</h3>
+<p class="text-[11px] text-on-surface-variant">All sensors active</p>
+</div>
+<button class="mt-auto py-1.5 bg-surface-container-highest rounded-lg text-[11px] font-bold text-on-surface text-center active:scale-95 transition-transform">
+                        SETTINGS
+                    </button>
+</section>
+<!-- Window Controls (Bento small) -->
+<section class="col-span-2 bg-surface-container-lowest rounded-xl p-4 flex items-center gap-4 shadow-sm">
+<div class="p-2 bg-secondary/10 rounded-lg">
+<span class="material-symbols-outlined text-secondary">blinds</span>
+</div>
+<div class="flex-1">
+<h3 class="font-headline text-sm font-bold text-on-surface">Living Windows</h3>
+<p class="text-[11px] text-on-surface-variant">Blinds 40% open</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 border border-outline-variant/30 rounded-lg text-[11px] font-bold">OPEN</button>
+<button class="px-3 py-1.5 bg-primary text-white rounded-lg text-[11px] font-bold">CLOSE</button>
+</div>
+</section>
+<!-- Quick Scene Selector (Themed Tonal Area) -->
+<div class="col-span-2 pt-2">
+<p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 px-1">Quick Scenes</p>
+<div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+<button class="shrink-0 flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-xs font-bold font-headline">Home</span>
+</button>
+<button class="shrink-0 flex items-center gap-2 bg-surface-container-highest text-on-surface px-4 py-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">flight_takeoff</span>
+<span class="text-xs font-bold font-headline">Away</span>
+</button>
+<button class="shrink-0 flex items-center gap-2 bg-surface-container-highest text-on-surface px-4 py-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">bedtime</span>
+<span class="text-xs font-bold font-headline">Sleep</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mapped from JSON) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 py-3 bg-[#f8f9fa] dark:bg-[#191c1d] border-t border-[#c2c6d9]/15 shadow-[0px_-8px_24px_rgba(25,28,29,0.04)] rounded-t-2xl">
+<!-- Home Active -->
+<button class="flex flex-col items-center justify-center bg-[#0061ff] text-white rounded-xl px-4 py-1.5 shadow-lg shadow-blue-500/20 active:scale-105 transition-all tap-highlight-none">
+<span class="material-symbols-outlined text-lg" data-icon="grid_view" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-0.5">Home</span>
+</button>
+<!-- Climate -->
+<button class="flex flex-col items-center justify-center text-[#5e6263] dark:text-[#c2c6d9] px-4 py-1.5 hover:bg-[#f8f9fa] rounded-xl active:scale-105 transition-all tap-highlight-none">
+<span class="material-symbols-outlined text-lg" data-icon="thermostat">thermostat</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-0.5">Climate</span>
+</button>
+<!-- Lights -->
+<button class="flex flex-col items-center justify-center text-[#5e6263] dark:text-[#c2c6d9] px-4 py-1.5 hover:bg-[#f8f9fa] rounded-xl active:scale-105 transition-all tap-highlight-none">
+<span class="material-symbols-outlined text-lg" data-icon="lightbulb">lightbulb</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-0.5">Lights</span>
+</button>
+<!-- Settings -->
+<button class="flex flex-col items-center justify-center text-[#5e6263] dark:text-[#c2c6d9] px-4 py-1.5 hover:bg-[#f8f9fa] rounded-xl active:scale-105 transition-all tap-highlight-none">
+<span class="material-symbols-outlined text-lg" data-icon="settings">settings</span>
+<span class="font-['Manrope'] text-[10px] uppercase tracking-widest font-bold mt-0.5">Settings</span>
+</button>
+</nav>
+</div>
+</body></html>

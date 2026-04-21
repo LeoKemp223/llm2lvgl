@@ -1,0 +1,58 @@
+{
+  "task_id": "stitch_smart_home_panel_v1",
+  "page_id": "stitch_smart_home_panel",
+  "page_name": "Stitch Smart Home Panel",
+  "input": {
+    "source_type": "html",
+    "html_entry": "input/index.html",
+    "assets_dir": "input/assets",
+    "notes_file": "input/notes.md"
+  },
+  "target": {
+    "profile": "../../../profiles/sim_480x480.json",
+    "viewport": {
+      "width": 480,
+      "height": 480
+    },
+    "color_depth": 32,
+    "dpi": 160,
+    "language": "en-US"
+  },
+  "generation": {
+    "output_c": "generated/stitch_smart_home_panel_page.c",
+    "output_h": "generated/stitch_smart_home_panel_page.h",
+    "component_mode": "portable",
+    "allow_custom_draw": false,
+    "allow_freetype": true,
+    "allow_filesystem_assets": false
+  },
+  "reference": {
+    "image": "reference/reference.png",
+    "render_from_html": false
+  },
+  "validation": {
+    "pixel_diff_threshold": 16,
+    "max_diff_ratio": 0.20,
+    "max_mean_abs_diff": 24.0,
+    "require_size_match": true
+  },
+  "export": {
+    "bundle_dir": "export/portable_bundle",
+    "include_assets": true,
+    "include_porting_md": true
+  },
+  "failure_policy": {
+    "max_iterations": 8,
+    "stop_on_build_error": true,
+    "stop_on_missing_reference": true,
+    "stop_on_validation_script_error": true,
+    "stop_on_portability_error": true
+  },
+  "compat": {
+    "legacy_page_flow_task": null
+  },
+  "notes": [
+    "This task converts the stitch_smart_home_panel HTML into a simulator-ready LVGL page.",
+    "The implementation now runs the simulator itself at 480x480 to match the original panel."
+  ]
+}

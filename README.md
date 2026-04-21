@@ -32,7 +32,51 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
          导出可移植交付包 → 嵌入式固件项目
 ```
 
-## 快速开始：从 HTML 生成 LVGL 页面
+## 3 分钟上手
+
+第一次接触这个仓库，先不要自己建 task，先跑通内置 demo：
+
+### 1. 安装核心依赖
+
+```bash
+sudo apt update
+sudo apt install -y \
+  build-essential cmake pkg-config \
+  python3 python3-pip python3-pil \
+  libsdl2-dev libsdl2-image-dev libfreetype6-dev
+```
+
+### 2. 做一次环境自检
+
+```bash
+tools/m1-pipeline.sh doctor
+```
+
+`doctor` 会检查：
+- `cmake`、`pkg-config`、`python3`
+- `Pillow`
+- `SDL2` / `SDL2_image` / `FreeType`（包含仓库内置的 `SDL2_image` fallback）
+- 是否存在 HTML 参考图渲染工具（`chromium` 或 `wkhtmltoimage`）
+- `m1_real_project` 能否成功 `cmake configure`
+
+### 3. 跑内置 quickstart
+
+```bash
+tools/m1-pipeline.sh quickstart
+```
+
+这条命令会直接跑仓库内置 demo task，成功后重点看：
+- `workspace/tasks/demo_v1/artifacts/current.png`
+- `workspace/tasks/demo_v1/artifacts/diff.png`
+- `workspace/tasks/demo_v1/artifacts/report.json`
+
+说明：
+- `quickstart` 优先使用仓库已提供的 `reference/reference.png`，所以即使本机还没装浏览器截图工具，也能先跑通第一条闭环
+- 只有你自己新建 task，且 `reference.render_from_html = true` 时，才需要额外安装 `chromium` / `google-chrome` / `wkhtmltoimage`
+
+如果这里已经跑通，你再开始创建自己的 task。
+
+## 从 HTML 生成自己的 LVGL 页面
 
 整个流程围绕 **任务 (task)** 组织。每个任务对应一个页面，包含输入 HTML、生成的 C 代码、校验产物和导出包。
 
@@ -117,6 +161,11 @@ tools/m1-pipeline.sh run workspace/tasks/my_page_v1/task.json
 1. 调用 `generate` 生成 C 代码（如果不是 legacy 兼容任务）
 2. 运行可移植性检查
 3. 编译 → SDL 模拟器渲染 → 截图 → 像素级 diff 校验
+
+注意：
+- 对于你自己新建的 task，默认 `reference.render_from_html = true`
+- 这意味着第一次 `run` 需要本机安装 `chromium` / `google-chrome` / `wkhtmltoimage` 之一
+- 如果你没有这些工具，可以先手动提供 `reference/reference.png`，并把 `render_from_html` 改为 `false`
 
 校验产物输出到 `artifacts/`：
 
@@ -217,22 +266,12 @@ lvgl_agent/
 
 推荐 Ubuntu 22.04/24.04, Linux x86_64。
 
-```bash
-sudo apt update
-sudo apt install -y \
-  build-essential cmake pkg-config \
-  python3 python3-pip python3-pil \
-  libsdl2-dev libsdl2-image-dev libfreetype6-dev
-```
-
-首次编译验证：
-
-```bash
-tools/lvgl-m1-real.sh rebuild
-tools/m1-page-flow.sh run token
-```
-
-输出 `Pass: True` 即环境就绪。
+核心依赖见上面的“3 分钟上手”。  
+如果你要为新 task 自动生成 HTML 参考图，还需要额外安装下面任意一种工具：
+- `chromium`
+- `chromium-browser`
+- `google-chrome`
+- `wkhtmltoimage`
 
 ## 工程内部架构
 
@@ -257,7 +296,8 @@ lvgl_m1_demo (executable)
 
 | 脚本 | 说明 |
 |------|------|
-| `tools/m1-pipeline.sh` | 任务流水线统一入口（init/generate/render-ref/sync/lint/run/export） |
+| `tools/m1-doctor.py` | 环境自检，检查依赖、仓库内 SDL2_image fallback、浏览器截图工具和 CMake configure |
+| `tools/m1-pipeline.sh` | 任务流水线统一入口（doctor/quickstart/init/generate/render-ref/sync/lint/run/export） |
 | `tools/m1-generate-page.py` | HTML → LVGL C 代码生成 |
 | `tools/m1-render-html-ref.py` | HTML 参考图渲染 |
 | `tools/m1-page-validate.py` | PIL 像素级 diff 校验器 |
@@ -274,6 +314,12 @@ lvgl_m1_demo (executable)
 以下命令用于调试或单步执行，日常使用推荐通过 `m1-pipeline.sh` 驱动。
 
 ```bash
+# 环境自检
+tools/m1-pipeline.sh doctor
+
+# 跑内置 demo
+tools/m1-pipeline.sh quickstart
+
 # 查看已注册页面
 tools/lvgl-m1-real.sh list-pages
 
@@ -295,4 +341,4 @@ tools/m1-page-flow.sh validate token
 | [docs/llm_codegen_rules.md](docs/llm_codegen_rules.md) | LLM 代码生成约束规则 |
 | [docs/board_profiles.md](docs/board_profiles.md) | Board profile 配置说明 |
 | [docs/lvgl-sdl-cross-machine-deployment.md](docs/lvgl-sdl-cross-machine-deployment.md) | 跨机器部署指南 |
-| [docs/m0-sample-pages.md](docs/m0-sample-pages.md) | M0 阶段示例页面清单 |
+

@@ -57,7 +57,7 @@ m1_real_project/
 - 从 `lv_conf.defaults` 生成 `lv_conf.h`
 - 通过 `add_subdirectory` 引用 `lv_port_linux_test/lvgl`
 - 编译所有页面源码，链接为可执行文件 `lvgl_m1_demo`
-- 当前已注册页面：`home`、`token`
+- 手写页面和 `workspace/tasks/*` 生成页会一起编进 `lvgl_m1_demo`
 
 ```text
 lvgl_m1_demo (executable)
@@ -67,12 +67,16 @@ lvgl_m1_demo (executable)
 
 **运行层** (`main.c`)
 
-初始化 LVGL + SDL 显示 (1280x800)，根据页面 id 创建 screen 并加载。
+初始化 LVGL + SDL 显示，根据页面 id 创建 screen 并加载。
 
 页面选择方式（优先级从高到低）：
 1. 命令行 `--page <id>`
 2. 环境变量 `M1_PAGE=<id>`
 3. 缺省走 `m1_page_default()`（当前为 token）
+
+视口大小也可通过环境变量覆盖：
+- `M1_VIEWPORT_WIDTH=<px>`
+- `M1_VIEWPORT_HEIGHT=<px>`
 
 截图模式（通过环境变量触发，互斥）：
 - `LVGL_SCREENSHOT_OUT=<path>` — 导出 `lv_screen_active()` 的视口截图，然后退出
@@ -105,9 +109,9 @@ typedef struct {
 - `xxx_page_create(void)` — 创建 LVGL 对象树，返回 screen 对象
 - `xxx_page_get_content_root(void)` — 返回内容区域的根节点（用于整页截图）
 
-当前已有页面：
-- `home` — 工具箱仪表盘：顶栏 + 侧边栏 + 8 个分类 + 26 张卡片，支持响应式布局
-- `token` — Token 落地页：顶栏 + hero 区域 + 供应商 logo 行
+当前至少包含：
+- 手写页面：`home`、`token`
+- 生成页面：由 `workspace/tasks/*` 自动同步进构建，实际可用页面请以 `tools/lvgl-m1-real.sh list-pages` 输出为准
 
 **校验层** (`workflow/` + `tools/m1-page-validate.py`)
 
@@ -131,6 +135,10 @@ tools/lvgl-m1-real.sh list-pages
 ```bash
 tools/lvgl-m1-real.sh rebuild
 ```
+
+说明：
+- `tools/lvgl-m1-real.sh` 会优先复用仓库内 `.deps/sdl2-image/root` 下的本地 `SDL2_image` fallback
+- 如果系统已经安装 `libsdl2-image-dev`，则直接使用系统依赖
 
 ### 运行
 
@@ -215,7 +223,9 @@ lv_obj_t * xxx_page_get_content_root(void);
 
 **2. 注册页面**
 
-在 `src/page_registry.c` 的 `g_pages[]` 数组末尾添加：
+如果你是在 `workspace/tasks/*` 下生成页面，这一步通常不需要手工做，`m1-sync-generated-pages.py` 会自动桥接。
+
+只有手写页面时，才需要在 `src/page_registry.c` 的 `g_pages[]` 数组末尾添加：
 
 ```c
 {
@@ -228,7 +238,8 @@ lv_obj_t * xxx_page_get_content_root(void);
 
 **3. 加入构建**
 
-在 `CMakeLists.txt` 的 `add_executable` 中加入 `src/xxx_page.c`。
+如果是手写页面，在 `CMakeLists.txt` 的 `add_executable` 中加入 `src/xxx_page.c`。  
+如果是 `workspace/tasks/*` 生成页，CMake 配置阶段会自动同步，无需手工改源文件列表。
 
 **4. 配置校验任务**
 

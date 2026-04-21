@@ -1,0 +1,15 @@
+{
+  "task_id": "stitch_smart_home_panel_v1",
+  "page_id": "stitch_smart_home_panel",
+  "page_name": "Stitch Smart Home Panel",
+  "profile": "sim_480x480",
+  "viewport": {
+    "width": 480,
+    "height": 480
+  },
+  "driver": "rule_based_html_v1",
+  "html_title": "",
+  "item_count": 24,
+  "output_c": "generated/stitch_smart_home_panel_page.c",
+  "output_h": "generated/stitch_smart_home_panel_page.h"
+}

@@ -15,9 +15,13 @@
 - Workspace task runner: [`/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py)
 - Export helper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py)
 - Pipeline entrypoint: [`/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh`](/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh)
+- Environment doctor: [`/home/leo/work/open-git/lvgl_agent/tools/m1-doctor.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-doctor.py)
 - Local `SDL2_image` fallback lives under [`/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root`](/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root)
 - Cross-machine deployment note: [`/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md`](/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md)
+- `tools/lvgl-m1-real.sh` and `tools/m1-doctor.py` automatically wire the repo-local `SDL2_image` fallback when it is present
 - Common commands:
+  - `tools/m1-pipeline.sh doctor`
+  - `tools/m1-pipeline.sh quickstart`
   - `tools/lvgl-sdl-sim.sh rebuild`
   - `tools/lvgl-sdl-sim.sh backend-info`
   - `tools/lvgl-sdl-sim.sh run`

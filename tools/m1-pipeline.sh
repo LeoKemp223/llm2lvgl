@@ -34,6 +34,10 @@ usage() {
 Usage: tools/m1-pipeline.sh <command> [args]
 
 Commands:
+  doctor
+                 Check local dependencies and whether the bundled demo can run
+  quickstart
+                 Run the bundled demo task end-to-end and write artifacts under workspace/tasks/demo_v1/
   init <task-dir> [--page-id ID] [--page-name NAME] [--profile PATH]
                  Create a task workspace and seed task.json
   generate <task.json>
@@ -60,6 +64,18 @@ EOF
 cmd="${1:-}"
 
 case "${cmd}" in
+    doctor)
+        python3 "${SCRIPT_DIR}/m1-doctor.py"
+        ;;
+    quickstart)
+        demo_task="${SCRIPT_DIR}/../workspace/tasks/demo_v1/task.json"
+        python3 "${SCRIPT_DIR}/m1-doctor.py"
+        python3 "${SCRIPT_DIR}/m1-task-run.py" --task "${demo_task}"
+        echo ""
+        echo "Quickstart finished."
+        echo "Report: ${SCRIPT_DIR}/../workspace/tasks/demo_v1/artifacts/report.json"
+        echo "Screenshot: ${SCRIPT_DIR}/../workspace/tasks/demo_v1/artifacts/current.png"
+        ;;
     init)
         shift
         python3 "${SCRIPT_DIR}/m1-task-init.py" "$@"

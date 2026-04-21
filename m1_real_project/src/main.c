@@ -19,6 +19,18 @@
 
 static const m1_page_descriptor_t * g_active_page = NULL;
 
+static int get_env_dimension(const char * name, int fallback)
+{
+    const char * env = getenv(name);
+    if(env != NULL && env[0] != '\0') {
+        int value = atoi(env);
+        if(value >= 64 && value <= 4096) {
+            return value;
+        }
+    }
+    return fallback;
+}
+
 static int get_settle_iterations(void)
 {
     const char * env = getenv("LVGL_SCREENSHOT_SETTLE");
@@ -159,7 +171,9 @@ static int maybe_capture_and_exit(void)
 
 static lv_display_t * create_display(void)
 {
-    lv_display_t * display = lv_sdl_window_create(1280, 800);
+    int width = get_env_dimension("M1_VIEWPORT_WIDTH", 1280);
+    int height = get_env_dimension("M1_VIEWPORT_HEIGHT", 800);
+    lv_display_t * display = lv_sdl_window_create(width, height);
     if(display == NULL) {
         return NULL;
     }
