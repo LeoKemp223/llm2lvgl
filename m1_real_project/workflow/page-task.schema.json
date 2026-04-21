@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "M1 Page Task",
+  "type": "object",
+  "required": [
+    "page_id",
+    "page_name",
+    "entry_page",
+    "reference_image",
+    "artifacts_dir",
+    "viewport",
+    "validation",
+    "completion",
+    "failure_policy"
+  ],
+  "properties": {
+    "page_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "page_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entry_page": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reference_image": {
+      "type": "string",
+      "minLength": 1
+    },
+    "artifacts_dir": {
+      "type": "string",
+      "minLength": 1
+    },
+    "viewport": {
+      "type": "object",
+      "required": [
+        "width",
+        "height"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": [
+        "pixel_diff_threshold",
+        "max_diff_ratio",
+        "max_mean_abs_diff",
+        "require_size_match"
+      ],
+      "properties": {
+        "pixel_diff_threshold": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "max_diff_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_mean_abs_diff": {
+          "type": "number",
+          "minimum": 0
+        },
+        "require_size_match": {
+          "type": "boolean"
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "required": [
+        "require_validation_pass"
+      ],
+      "properties": {
+        "require_validation_pass": {
+          "type": "boolean"
+        }
+      }
+    },
+    "failure_policy": {
+      "type": "object",
+      "required": [
+        "max_iterations",
+        "stop_on_build_error",
+        "stop_on_missing_reference",
+        "stop_on_validation_script_error"
+      ],
+      "properties": {
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stop_on_build_error": {
+          "type": "boolean"
+        },
+        "stop_on_missing_reference": {
+          "type": "boolean"
+        },
+        "stop_on_validation_script_error": {
+          "type": "boolean"
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

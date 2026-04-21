@@ -1,0 +1,26 @@
+# Build
+m1_real_project/build/
+.deps/
+.tmp/
+
+# Upstream dependency (use git submodule)
+lv_port_linux_test/
+
+# Artifacts (regeneratable)
+workspace/tasks/*/artifacts/
+workspace/tasks/*/export/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/

@@ -1,0 +1,32 @@
+# Tools
+
+## LVGL SDL Simulator
+- Official simulator port cloned at [`/home/leo/work/open-git/lvgl_agent/lv_port_linux_test`](/home/leo/work/open-git/lvgl_agent/lv_port_linux_test)
+- Preferred helper script: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-sim.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-sim.sh)
+- Hello-world demo helper: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-hello.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-hello.sh)
+- M1 real-project helper: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-m1-real.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-m1-real.sh)
+- M1 page workflow helper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-page-flow.sh`](/home/leo/work/open-git/lvgl_agent/tools/m1-page-flow.sh)
+- M1 page validator: [`/home/leo/work/open-git/lvgl_agent/tools/m1-page-validate.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-page-validate.py)
+- Task workspace bootstrapper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-task-init.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-task-init.py)
+- HTML-to-LVGL generator: [`/home/leo/work/open-git/lvgl_agent/tools/m1-generate-page.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-generate-page.py)
+- HTML reference renderer: [`/home/leo/work/open-git/lvgl_agent/tools/m1-render-html-ref.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-render-html-ref.py)
+- Generated-page bridge emitter: [`/home/leo/work/open-git/lvgl_agent/tools/m1-sync-generated-pages.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-sync-generated-pages.py)
+- Portability lint: [`/home/leo/work/open-git/lvgl_agent/tools/m1-portability-lint.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-portability-lint.py)
+- Workspace task runner: [`/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py)
+- Export helper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py)
+- Pipeline entrypoint: [`/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh`](/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh)
+- Local `SDL2_image` fallback lives under [`/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root`](/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root)
+- Cross-machine deployment note: [`/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md`](/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md)
+- Common commands:
+  - `tools/lvgl-sdl-sim.sh rebuild`
+  - `tools/lvgl-sdl-sim.sh backend-info`
+  - `tools/lvgl-sdl-sim.sh run`
+  - `tools/lvgl-sdl-sim.sh run-headless`
+  - `tools/lvgl-sdl-hello.sh rebuild`
+  - `tools/lvgl-sdl-hello.sh run`
+  - `tools/lvgl-sdl-hello.sh run-headless`
+  - `tools/lvgl-m1-real.sh rebuild`
+  - `tools/lvgl-m1-real.sh run`
+  - `tools/lvgl-m1-real.sh run-headless`
+  - `tools/lvgl-m1-real.sh list-pages`
+  - `tools/m1-page-flow.sh run token`

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "id": "stm32_800x480",
+  "name": "STM32 800x480",
+  "screen": {
+    "width": 800,
+    "height": 480,
+    "color_depth": 16,
+    "dpi": 160
+  },
+  "fonts": {
+    "allow_freetype": false,
+    "builtin_fonts": [
+      "lv_font_montserrat_14",
+      "lv_font_montserrat_24"
+    ],
+    "default_font": "lv_font_montserrat_14"
+  },
+  "assets": {
+    "allow_filesystem": false,
+    "allow_png": true,
+    "allow_jpg": false,
+    "max_asset_kb": 512
+  },
+  "constraints": {
+    "allow_sdl_only_api": false,
+    "allow_snapshot_api_in_export": false
+  }
+}

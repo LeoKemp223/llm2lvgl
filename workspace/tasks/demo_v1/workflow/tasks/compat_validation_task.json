@@ -1,0 +1,26 @@
+{
+  "page_id": "demo_page",
+  "page_name": "Demo Page",
+  "entry_page": "demo_page",
+  "reference_image": "reference/reference.png",
+  "artifacts_dir": "artifacts",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "validation": {
+    "pixel_diff_threshold": 16,
+    "max_diff_ratio": 0.18,
+    "max_mean_abs_diff": 22.0,
+    "require_size_match": true
+  },
+  "completion": {
+    "require_validation_pass": true
+  },
+  "failure_policy": {
+    "max_iterations": 8,
+    "stop_on_build_error": true,
+    "stop_on_missing_reference": true,
+    "stop_on_validation_script_error": true
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "task_id": "demo_v1",
+  "page_id": "demo_page",
+  "page_name": "Demo Page",
+  "profile": "sim_1280x800",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "driver": "rule_based_html_v1",
+  "html_title": "Demo Page",
+  "item_count": 6,
+  "output_c": "generated/demo_page_page.c",
+  "output_h": "generated/demo_page_page.h"
+}
