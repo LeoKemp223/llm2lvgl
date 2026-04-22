@@ -42,6 +42,16 @@ def detect_browser() -> tuple:
     return ("", "")
 
 
+def missing_renderer_message(task_path: Path, output_path: Path) -> str:
+    return (
+        "HTML reference rendering is required for this task "
+        f"(`{task_path}` has `reference.render_from_html=true`), but no supported renderer is installed.\n"
+        "Install one of: chromium, chromium-browser, google-chrome, google-chrome-stable, wkhtmltoimage.\n"
+        "Or provide the reference image manually at "
+        f"`{output_path}` and set `reference.render_from_html` to `false` in task.json."
+    )
+
+
 def render_with_chromium(binary: str, html_path: Path, output_path: Path, width: int, height: int) -> None:
     cmd = [
         binary,
@@ -93,9 +103,7 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     kind, binary = detect_browser()
     if not binary:
-        raise SystemExit(
-            "No supported HTML screenshot tool found. Install chromium/chromium-browser/google-chrome or wkhtmltoimage."
-        )
+        raise SystemExit(missing_renderer_message(task_path, output_path))
 
     if kind == "chromium":
         render_with_chromium(binary, html_path, output_path, width, height)

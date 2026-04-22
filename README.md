@@ -158,6 +158,8 @@ curl -L "https://example.com/your-page" -o workspace/tasks/my_page_v1/input/inde
 如果页面有需要保留的图片，手动下载到 `input/assets/` 并修改 HTML 中的 `src` 路径为相对路径（如 `assets/logo.png`）。
 
 > 提示：生成器解析 HTML 中的 `h1/h2/h3/p/button/a/img` 等标签，转换为对应的 LVGL 控件。复杂的 CSS 布局和 JS 交互不会被转换，只提取结构和文本内容。
+>
+> 如果这是一个 URL/HTML 任务，并且 `task.json` 里保持 `reference.render_from_html = true`，第一次 `run` 前还需要本机安装 `chromium` / `google-chrome` / `wkhtmltoimage` 之一；否则请手动放置 `reference/reference.png`，并把 `render_from_html` 改成 `false`。
 
 **方式 C：只有一张图片**
 
