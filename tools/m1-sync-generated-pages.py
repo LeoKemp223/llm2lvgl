@@ -91,8 +91,8 @@ def render_header() -> str:
         "#define GENERATED_PAGE_REGISTRY_H\n\n"
         "#include <stddef.h>\n\n"
         "#include \"page_registry.h\"\n\n"
-        "size_t m1_generated_page_count(void);\n"
-        "const m1_page_descriptor_t * m1_generated_page_list(void);\n\n"
+        "size_t lvgl_generated_page_count(void);\n"
+        "const lvgl_page_descriptor_t * lvgl_generated_page_list(void);\n\n"
         "#endif\n"
     )
 
@@ -108,7 +108,7 @@ def render_registry_source(tasks: list) -> str:
 
     lines.extend([
         "",
-        "static const m1_page_descriptor_t g_generated_pages[] = {",
+        "static const lvgl_page_descriptor_t g_generated_pages[] = {",
     ])
 
     for item in tasks:
@@ -128,12 +128,12 @@ def render_registry_source(tasks: list) -> str:
     lines.extend([
         "};",
         "",
-        "size_t m1_generated_page_count(void)",
+        "size_t lvgl_generated_page_count(void)",
         "{",
         "    return sizeof(g_generated_pages) / sizeof(g_generated_pages[0]);",
         "}",
         "",
-        "const m1_page_descriptor_t * m1_generated_page_list(void)",
+        "const lvgl_page_descriptor_t * lvgl_generated_page_list(void)",
         "{",
         "    return g_generated_pages;",
         "}",
@@ -143,7 +143,7 @@ def render_registry_source(tasks: list) -> str:
 
 
 def render_cmake(tasks: list) -> str:
-    lines = ["set(M1_GENERATED_PAGE_SOURCES"]
+    lines = ["set(LVGL_GENERATED_PAGE_SOURCES"]
     for item in tasks:
         lines.append(f'  "{str(item["output_c"])}"')
     lines.append(")")
@@ -152,7 +152,7 @@ def render_cmake(tasks: list) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Discover generated task pages and emit M1 registry/CMake bridge files.")
+    parser = argparse.ArgumentParser(description="Discover generated task pages and emit LVGL registry/CMake bridge files.")
     parser.add_argument("--tasks-root", default=str(REPO_ROOT / "workspace" / "tasks"), help="Directory containing task subdirectories")
     parser.add_argument("--task-json", help="Optional single task.json to isolate registry/source generation to one page")
     parser.add_argument("--registry-c", required=True, help="Path to write generated_page_registry.c")

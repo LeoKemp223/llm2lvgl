@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(lvgl_m1_demo LANGUAGES C CXX ASM)
+project(lvgl_runtime_demo LANGUAGES C CXX ASM)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
@@ -12,10 +12,15 @@ find_package(PkgConfig REQUIRED)
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
 set(LVGL_DIR "${REPO_ROOT}/lv_port_linux_test/lvgl")
-set(M1_GENERATED_REGISTRY_C "${CMAKE_BINARY_DIR}/generated_page_registry.c")
-set(M1_GENERATED_REGISTRY_H "${CMAKE_BINARY_DIR}/generated_page_registry.h")
-set(M1_GENERATED_SOURCES_CMAKE "${CMAKE_BINARY_DIR}/generated_page_sources.cmake")
-set(M1_TASK_JSON "" CACHE FILEPATH "Optional task.json for isolated single-page builds")
+set(LVGL_GENERATED_REGISTRY_C "${CMAKE_BINARY_DIR}/generated_page_registry.c")
+set(LVGL_GENERATED_REGISTRY_H "${CMAKE_BINARY_DIR}/generated_page_registry.h")
+set(LVGL_GENERATED_SOURCES_CMAKE "${CMAKE_BINARY_DIR}/generated_page_sources.cmake")
+set(LVGL_TASK_JSON "" CACHE FILEPATH "Optional task.json for isolated single-page builds")
+set(M1_TASK_JSON "" CACHE FILEPATH "Legacy alias for LVGL_TASK_JSON")
+
+if(NOT LVGL_TASK_JSON AND M1_TASK_JSON)
+  set(LVGL_TASK_JSON "${M1_TASK_JSON}")
+endif()
 
 set(LV_CONF_DEFAULTS_PATH "${CMAKE_CURRENT_LIST_DIR}/lv_conf.defaults")
 set(LV_BUILD_CONF_PATH "${CMAKE_BINARY_DIR}/lv_conf.h" CACHE PATH "Path to generated lv_conf.h" FORCE)
@@ -37,14 +42,14 @@ if(NOT config_result EQUAL 0)
   message(FATAL_ERROR "Failed to generate lv_conf.h: ${config_output}")
 endif()
 
-if(M1_TASK_JSON)
+if(LVGL_TASK_JSON)
   execute_process(
     COMMAND
       ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
-      --task-json ${M1_TASK_JSON}
-      --registry-c ${M1_GENERATED_REGISTRY_C}
-      --registry-h ${M1_GENERATED_REGISTRY_H}
-      --cmake-out ${M1_GENERATED_SOURCES_CMAKE}
+      --task-json ${LVGL_TASK_JSON}
+      --registry-c ${LVGL_GENERATED_REGISTRY_C}
+      --registry-h ${LVGL_GENERATED_REGISTRY_H}
+      --cmake-out ${LVGL_GENERATED_SOURCES_CMAKE}
     RESULT_VARIABLE generated_pages_result
     OUTPUT_VARIABLE generated_pages_output
     ERROR_VARIABLE generated_pages_output)
@@ -53,9 +58,9 @@ else()
     COMMAND
       ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
       --tasks-root ${REPO_ROOT}/workspace/tasks
-      --registry-c ${M1_GENERATED_REGISTRY_C}
-      --registry-h ${M1_GENERATED_REGISTRY_H}
-      --cmake-out ${M1_GENERATED_SOURCES_CMAKE}
+      --registry-c ${LVGL_GENERATED_REGISTRY_C}
+      --registry-h ${LVGL_GENERATED_REGISTRY_H}
+      --cmake-out ${LVGL_GENERATED_SOURCES_CMAKE}
     RESULT_VARIABLE generated_pages_result
     OUTPUT_VARIABLE generated_pages_output
     ERROR_VARIABLE generated_pages_output)
@@ -65,7 +70,7 @@ if(NOT generated_pages_result EQUAL 0)
   message(FATAL_ERROR "Failed to sync generated pages: ${generated_pages_output}")
 endif()
 
-include(${M1_GENERATED_SOURCES_CMAKE} OPTIONAL)
+include(${LVGL_GENERATED_SOURCES_CMAKE} OPTIONAL)
 
 add_subdirectory("${LVGL_DIR}" lvgl)
 
@@ -78,9 +83,9 @@ else()
   message(WARNING "FreeType not found; CJK font rendering will use built-in fallback fonts")
 endif()
 
-add_executable(lvgl_m1_demo
-  ${M1_GENERATED_REGISTRY_C}
-  ${M1_GENERATED_PAGE_SOURCES}
+add_executable(lvgl_runtime_demo
+  ${LVGL_GENERATED_REGISTRY_C}
+  ${LVGL_GENERATED_PAGE_SOURCES}
   src/home_page.c
   src/main.c
   src/page_registry.c
@@ -88,21 +93,21 @@ add_executable(lvgl_m1_demo
   src/ui_font.c
 )
 
-target_include_directories(lvgl_m1_demo PRIVATE
+target_include_directories(lvgl_runtime_demo PRIVATE
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/src
 )
 
-target_compile_definitions(lvgl_m1_demo PRIVATE
+target_compile_definitions(lvgl_runtime_demo PRIVATE
   TOKEN_PROVIDER_ROW_IMAGE_PATH=\"A:${CMAKE_CURRENT_LIST_DIR}/assets/provider_icons_live.png\"
 )
 
-target_link_libraries(lvgl_m1_demo PRIVATE
+target_link_libraries(lvgl_runtime_demo PRIVATE
   lvgl
   m
   pthread
 )
 
 if(UNIX AND NOT APPLE)
-  target_link_libraries(lvgl_m1_demo PRIVATE rt)
+  target_link_libraries(lvgl_runtime_demo PRIVATE rt)
 endif()

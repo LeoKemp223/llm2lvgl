@@ -7,7 +7,7 @@
 #include "home_page.h"
 #include "token_page.h"
 
-static const m1_page_descriptor_t g_pages[] = {
+static const lvgl_page_descriptor_t g_pages[] = {
     {
         .id = "home",
         .name = "Home Page",
@@ -22,13 +22,13 @@ static const m1_page_descriptor_t g_pages[] = {
     },
 };
 
-static m1_page_descriptor_t g_combined_pages[256];
+static lvgl_page_descriptor_t g_combined_pages[256];
 
 static size_t fill_combined_pages(void)
 {
-    const m1_page_descriptor_t * generated_pages = m1_generated_page_list();
+    const lvgl_page_descriptor_t * generated_pages = lvgl_generated_page_list();
     size_t base_count = sizeof(g_pages) / sizeof(g_pages[0]);
-    size_t generated_count = m1_generated_page_count();
+    size_t generated_count = lvgl_generated_page_count();
     size_t total = base_count + generated_count;
     size_t i;
 
@@ -48,22 +48,22 @@ static size_t fill_combined_pages(void)
     return total;
 }
 
-const m1_page_descriptor_t * m1_page_default(void)
+const lvgl_page_descriptor_t * lvgl_page_default(void)
 {
     return &g_pages[0];
 }
 
-const m1_page_descriptor_t * m1_page_find(const char * id)
+const lvgl_page_descriptor_t * lvgl_page_find(const char * id)
 {
-    const m1_page_descriptor_t * pages = NULL;
+    const lvgl_page_descriptor_t * pages = NULL;
     size_t count = 0;
     size_t i;
 
     if(id == NULL || id[0] == '\0') {
-        return m1_page_default();
+        return lvgl_page_default();
     }
 
-    pages = m1_page_list(&count);
+    pages = lvgl_page_list(&count);
     for(i = 0; i < count; ++i) {
         if(strcmp(pages[i].id, id) == 0) {
             return &pages[i];
@@ -73,7 +73,7 @@ const m1_page_descriptor_t * m1_page_find(const char * id)
     return NULL;
 }
 
-const m1_page_descriptor_t * m1_page_list(size_t * count)
+const lvgl_page_descriptor_t * lvgl_page_list(size_t * count)
 {
     size_t total = fill_combined_pages();
 

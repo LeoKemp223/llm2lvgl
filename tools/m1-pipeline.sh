@@ -30,8 +30,10 @@ print("true" if task.get("compat", {}).get("legacy_page_flow_task") is not None 
 }
 
 usage() {
-    cat <<'EOF'
-Usage: tools/m1-pipeline.sh <command> [args]
+    local script_name="${LVGL_PIPELINE_NAME:-pipeline.sh}"
+
+    cat <<EOF
+Usage: tools/${script_name} <command> [args]
 
 Commands:
   doctor
@@ -122,20 +124,20 @@ task = json.loads(task_path.read_text(encoding="utf-8"))
 task_key = task.get("task_id") or task_path.parent.name or task["page_id"]
 task_key = re.sub(r"[^a-z0-9]+", "-", task_key.strip().lower()).strip("-") or "task"
 print((Path(sys.argv[2]).resolve() / task_key).as_posix())
-' "${task_json}" "${SCRIPT_DIR}/../m1_real_project/build")"
+' "${task_json}" "${SCRIPT_DIR}/../runtime_project/build")"
             mkdir -p "${build_dir}"
-            python3 "${SCRIPT_DIR}/m1-sync-generated-pages.py" \
+            python3 "${SCRIPT_DIR}/sync-generated-pages.py" \
                 --task-json "${task_json}" \
                 --registry-c "${build_dir}/generated_page_registry.c" \
                 --registry-h "${build_dir}/generated_page_registry.h" \
                 --cmake-out "${build_dir}/generated_page_sources.cmake"
         else
-            mkdir -p "${SCRIPT_DIR}/../m1_real_project/build"
-            python3 "${SCRIPT_DIR}/m1-sync-generated-pages.py" \
+            mkdir -p "${SCRIPT_DIR}/../runtime_project/build"
+            python3 "${SCRIPT_DIR}/sync-generated-pages.py" \
                 --tasks-root "${SCRIPT_DIR}/../workspace/tasks" \
-                --registry-c "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.c" \
-                --registry-h "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.h" \
-                --cmake-out "${SCRIPT_DIR}/../m1_real_project/build/generated_page_sources.cmake"
+                --registry-c "${SCRIPT_DIR}/../runtime_project/build/generated_page_registry.c" \
+                --registry-h "${SCRIPT_DIR}/../runtime_project/build/generated_page_registry.h" \
+                --cmake-out "${SCRIPT_DIR}/../runtime_project/build/generated_page_sources.cmake"
         fi
         ;;
     lint)
@@ -202,7 +204,7 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
         url="${2:-}"
         task_json="${3:-}"
         if [[ -z "${url}" || -z "${task_json}" ]]; then
-            echo "Usage: tools/m1-pipeline.sh fetch <url> <task.json>" >&2
+            echo "Usage: tools/${LVGL_PIPELINE_NAME:-pipeline.sh} fetch <url> <task.json>" >&2
             exit 1
         fi
         input_dir="$(dirname "${task_json}")/input"
@@ -212,7 +214,7 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
         ;;
     clean)
         echo "Cleaning build directory..."
-        rm -rf "${SCRIPT_DIR}/../m1_real_project/build"
+        rm -rf "${SCRIPT_DIR}/../runtime_project/build"
         echo "Build directory removed."
         ;;
     validate)

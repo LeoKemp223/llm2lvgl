@@ -4,10 +4,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-PROJECT_DIR="${ROOT_DIR}/m1_real_project"
+PROJECT_DIR="${ROOT_DIR}/runtime_project"
 TASKS_DIR="${PROJECT_DIR}/workflow/tasks"
 VALIDATOR="${SCRIPT_DIR}/m1-page-validate.py"
-M1_RUNNER="${SCRIPT_DIR}/lvgl-m1-real.sh"
+RUNTIME_RUNNER="${SCRIPT_DIR}/lvgl-runtime.sh"
 
 CURRENT_ITERATION=""
 
@@ -94,11 +94,11 @@ print((task_path.parent.parent.parent / value).resolve())
 }
 
 ensure_build() {
-    if [[ ! -x "${PROJECT_DIR}/build/lvgl_m1_demo" ]]; then
-        "${M1_RUNNER}" configure
+    if [[ ! -x "${PROJECT_DIR}/build/lvgl_runtime_demo" ]]; then
+        "${RUNTIME_RUNNER}" configure
     fi
 
-    "${M1_RUNNER}" build
+    "${RUNTIME_RUNNER}" build
 }
 
 run_screenshots() {
@@ -115,8 +115,8 @@ run_screenshots() {
 
     mkdir -p "${artifacts_dir}"
 
-    M1_PAGE="${page_id}" "${M1_RUNNER}" screenshot "${current_path}"
-    M1_PAGE="${page_id}" "${M1_RUNNER}" screenshot-full "${full_path}"
+    LVGL_PAGE="${page_id}" "${RUNTIME_RUNNER}" screenshot "${current_path}"
+    LVGL_PAGE="${page_id}" "${RUNTIME_RUNNER}" screenshot-full "${full_path}"
 }
 
 run_validation() {
@@ -178,12 +178,14 @@ EOF
 }
 
 usage() {
-    cat <<'EOF'
-Usage: tools/m1-page-flow.sh <command> <task>
+    local script_name="${LVGL_PAGE_FLOW_NAME:-page-flow.sh}"
+
+    cat <<EOF
+Usage: tools/${script_name} <command> <task>
 
 Commands:
   info        Print resolved task information
-  build       Build the M1 project for the task
+  build       Build the LVGL runtime project for the task
   screenshot  Capture viewport and full-content screenshots for the task
   validate    Run screenshot validation for the task
   run         Build, screenshot, and validate the task in one pass
@@ -193,7 +195,7 @@ EOF
 
 command_name="${1:-}"
 task_ref="${2:-}"
-CURRENT_ITERATION="${3:-${M1_LOOP_ITERATION:-1}}"
+CURRENT_ITERATION="${3:-${LVGL_LOOP_ITERATION:-${M1_LOOP_ITERATION:-1}}}"
 
 if [[ -z "${command_name}" ]]; then
     usage

@@ -1,46 +1,40 @@
 # Tools
 
-## LVGL SDL Simulator
-- Official simulator port cloned at [`/home/leo/work/open-git/lvgl_agent/lv_port_linux_test`](/home/leo/work/open-git/lvgl_agent/lv_port_linux_test)
-- Preferred helper script: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-sim.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-sim.sh)
-- Hello-world demo helper: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-hello.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-sdl-hello.sh)
-- M1 real-project helper: [`/home/leo/work/open-git/lvgl_agent/tools/lvgl-m1-real.sh`](/home/leo/work/open-git/lvgl_agent/tools/lvgl-m1-real.sh)
-- M1 page workflow helper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-page-flow.sh`](/home/leo/work/open-git/lvgl_agent/tools/m1-page-flow.sh)
-- M1 page validator: [`/home/leo/work/open-git/lvgl_agent/tools/m1-page-validate.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-page-validate.py)
-- Task workspace bootstrapper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-task-init.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-task-init.py)
-- Image-to-HTML draft generator: [`/home/leo/work/open-git/lvgl_agent/tools/m1-image-to-html.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-image-to-html.py)
-- HTML-to-LVGL generator: [`/home/leo/work/open-git/lvgl_agent/tools/m1-generate-page.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-generate-page.py)
-- HTML reference renderer: [`/home/leo/work/open-git/lvgl_agent/tools/m1-render-html-ref.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-render-html-ref.py)
-- Generated-page bridge emitter: [`/home/leo/work/open-git/lvgl_agent/tools/m1-sync-generated-pages.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-sync-generated-pages.py)
-- Portability lint: [`/home/leo/work/open-git/lvgl_agent/tools/m1-portability-lint.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-portability-lint.py)
-- Workspace task runner: [`/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-task-run.py)
-- Export helper: [`/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-export-page.py)
-- Pipeline entrypoint: [`/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh`](/home/leo/work/open-git/lvgl_agent/tools/m1-pipeline.sh)
-- Environment doctor: [`/home/leo/work/open-git/lvgl_agent/tools/m1-doctor.py`](/home/leo/work/open-git/lvgl_agent/tools/m1-doctor.py)
-- Local `SDL2_image` fallback lives under [`/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root`](/home/leo/work/open-git/lvgl_agent/.deps/sdl2-image/root)
-- Cross-machine deployment note: [`/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md`](/home/leo/work/open-git/lvgl_agent/docs/lvgl-sdl-cross-machine-deployment.md)
-- `tools/lvgl-m1-real.sh` and `tools/m1-doctor.py` automatically wire the repo-local `SDL2_image` fallback when it is present
-- `tools/lvgl-m1-real.sh` now supports single-page isolated builds for workspace tasks
-- When only `M1_PAGE=<page_id>` is provided for a workspace task page, `tools/lvgl-m1-real.sh` auto-infers:
+## Preferred Public Entry Points
+
+- Pipeline entrypoint: [`/home/leo/work/open-git/llm2lvgl/tools/pipeline.sh`](/home/leo/work/open-git/llm2lvgl/tools/pipeline.sh)
+- Runtime helper: [`/home/leo/work/open-git/llm2lvgl/tools/lvgl-runtime.sh`](/home/leo/work/open-git/llm2lvgl/tools/lvgl-runtime.sh)
+- Page workflow helper: [`/home/leo/work/open-git/llm2lvgl/tools/page-flow.sh`](/home/leo/work/open-git/llm2lvgl/tools/page-flow.sh)
+- Page validator: [`/home/leo/work/open-git/llm2lvgl/tools/page-validate.py`](/home/leo/work/open-git/llm2lvgl/tools/page-validate.py)
+- Environment doctor: [`/home/leo/work/open-git/llm2lvgl/tools/doctor.py`](/home/leo/work/open-git/llm2lvgl/tools/doctor.py)
+- Task workspace bootstrapper: [`/home/leo/work/open-git/llm2lvgl/tools/task-init.py`](/home/leo/work/open-git/llm2lvgl/tools/task-init.py)
+- Image-to-HTML draft generator: [`/home/leo/work/open-git/llm2lvgl/tools/image-to-html.py`](/home/leo/work/open-git/llm2lvgl/tools/image-to-html.py)
+- HTML-to-LVGL generator: [`/home/leo/work/open-git/llm2lvgl/tools/generate-page.py`](/home/leo/work/open-git/llm2lvgl/tools/generate-page.py)
+- HTML reference renderer: [`/home/leo/work/open-git/llm2lvgl/tools/render-html-ref.py`](/home/leo/work/open-git/llm2lvgl/tools/render-html-ref.py)
+- Generated-page bridge emitter: [`/home/leo/work/open-git/llm2lvgl/tools/sync-generated-pages.py`](/home/leo/work/open-git/llm2lvgl/tools/sync-generated-pages.py)
+- Portability lint: [`/home/leo/work/open-git/llm2lvgl/tools/portability-lint.py`](/home/leo/work/open-git/llm2lvgl/tools/portability-lint.py)
+- Workspace task runner: [`/home/leo/work/open-git/llm2lvgl/tools/task-run.py`](/home/leo/work/open-git/llm2lvgl/tools/task-run.py)
+- Export helper: [`/home/leo/work/open-git/llm2lvgl/tools/export-page.py`](/home/leo/work/open-git/llm2lvgl/tools/export-page.py)
+
+## Compatibility Notes
+
+- Legacy `m1-*` script names are still present and continue to work.
+- `tools/lvgl-runtime.sh` and `tools/doctor.py` automatically wire the repo-local `SDL2_image` fallback when it is present.
+- For workspace task pages, `tools/lvgl-runtime.sh` supports `LVGL_PAGE=<page_id>` and auto-infers:
   - matching `workspace/tasks/*/task.json`
-  - isolated build dir under `m1_real_project/build/<task-id>/`
-  - `target.viewport` as `M1_VIEWPORT_WIDTH/HEIGHT`
+  - isolated build dir under `runtime_project/build/<task-id>/`
+  - `target.viewport` as `LVGL_VIEWPORT_WIDTH/HEIGHT`
   - missing binary bootstrap via automatic `configure + build`
-- Common commands:
-  - `tools/m1-pipeline.sh doctor`
-  - `tools/m1-pipeline.sh quickstart`
-  - `tools/m1-pipeline.sh draft-html <task.json>`
-  - `tools/lvgl-sdl-sim.sh rebuild`
-  - `tools/lvgl-sdl-sim.sh backend-info`
-  - `tools/lvgl-sdl-sim.sh run`
-  - `tools/lvgl-sdl-sim.sh run-headless`
-  - `tools/lvgl-sdl-hello.sh rebuild`
-  - `tools/lvgl-sdl-hello.sh run`
-  - `tools/lvgl-sdl-hello.sh run-headless`
-  - `tools/lvgl-m1-real.sh rebuild`
-  - `tools/lvgl-m1-real.sh run`
-  - `tools/lvgl-m1-real.sh run-headless`
-  - `tools/lvgl-m1-real.sh list-pages`
-  - `M1_PAGE=demo_page tools/lvgl-m1-real.sh run`
-  - `M1_PAGE=stitch_smart_home_panel tools/lvgl-m1-real.sh screenshot /tmp/stitch.png`
-  - `tools/m1-page-flow.sh run token`
+
+## Common Commands
+
+- `tools/pipeline.sh doctor`
+- `tools/pipeline.sh quickstart`
+- `tools/pipeline.sh draft-html <task.json>`
+- `tools/lvgl-runtime.sh rebuild`
+- `tools/lvgl-runtime.sh run`
+- `tools/lvgl-runtime.sh run-headless`
+- `tools/lvgl-runtime.sh list-pages`
+- `LVGL_PAGE=demo_page tools/lvgl-runtime.sh run`
+- `LVGL_PAGE=stitch_smart_home_panel tools/lvgl-runtime.sh screenshot /tmp/stitch.png`
+- `tools/page-flow.sh run token`

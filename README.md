@@ -1,6 +1,6 @@
 # LVGL Agent Workspace
 
-基于 **LVGL + SDL** 的自动化 UI 开发工作仓库。核心能力：**从 HTML 页面自动生成嵌入式 LVGL C 代码**，并通过 SDL 模拟器进行像素级视觉回归验证。当前代码生成器为规则引擎（rule_based_html_v1），LLM 驱动生成为后续目标。
+这是一个面向 LLM 驱动，基于 LVGL + SDL 的自动化 UI 工作仓库，用于把设计稿、HTML 页面或图像生成成嵌入式 LVGL 代码，并通过模拟器做可视化预览和回归验证。
 
 ## 核心流程
 
@@ -9,12 +9,12 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
       │                                │
       └──────────┬─────────────────────┘
                  ▼
-         代码生成（规则引擎 / LLM） (m1-generate-page.py)
+         代码生成（规则引擎 / LLM） (generate-page.py)
                  │
                  ▼
          generated/<page>.c/.h
                  │
-                 ├── 可移植性检查 (m1-portability-lint.py)
+                 ├── 可移植性检查 (portability-lint.py)
                  │
                  ▼
          CMake 编译 → SDL 模拟器渲染 (headless)
@@ -23,7 +23,7 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
          截图 (lv_snapshot_take → PNG)
                  │
                  ▼
-         像素级 diff 校验 (m1-page-validate.py)
+         像素级 diff 校验 (page-validate.py)
                  │
                  ▼
          report.json (pass/fail) + diff.png (热力图)
@@ -31,6 +31,10 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
                  ▼
          导出可移植交付包 → 嵌入式固件项目
 ```
+
+说明：
+- 文档和命令示例优先使用不带 `m1` 的公开名称
+- 旧的 `m1-*` 脚本名和 `M1_*` 环境变量仍然保留兼容
 
 ## 3 分钟上手
 
@@ -49,7 +53,7 @@ sudo apt install -y \
 ### 2. 做一次环境自检
 
 ```bash
-tools/m1-pipeline.sh doctor
+tools/pipeline.sh doctor
 ```
 
 `doctor` 会检查：
@@ -57,12 +61,12 @@ tools/m1-pipeline.sh doctor
 - `Pillow`
 - `SDL2` / `SDL2_image` / `FreeType`（包含仓库内置的 `SDL2_image` fallback）
 - 是否存在 HTML 参考图渲染工具（`chromium` 或 `wkhtmltoimage`）
-- `m1_real_project` 能否成功 `cmake configure`
+- 运行时主工程 `runtime_project/` 能否成功 `cmake configure`
 
 ### 3. 跑内置 quickstart
 
 ```bash
-tools/m1-pipeline.sh quickstart
+tools/pipeline.sh quickstart
 ```
 
 这条命令会直接跑仓库内置 demo task，成功后重点看：
@@ -83,13 +87,13 @@ tools/m1-pipeline.sh quickstart
 ### 1. 初始化任务
 
 ```bash
-tools/m1-pipeline.sh init workspace/tasks/my_page_v1
+tools/pipeline.sh init workspace/tasks/my_page_v1
 ```
 
 如果你的输入是一张设计稿或页面截图，可以直接初始化图片任务：
 
 ```bash
-tools/m1-pipeline.sh init workspace/tasks/my_image_page_v1 \
+tools/pipeline.sh init workspace/tasks/my_image_page_v1 \
   --source-type image \
   --image /path/to/source.png
 ```
@@ -151,7 +155,7 @@ curl -L "https://example.com/your-page" -o workspace/tasks/my_page_v1/input/inde
 如果你初始化的是图片任务：
 
 ```bash
-tools/m1-pipeline.sh init workspace/tasks/my_image_page_v1 \
+tools/pipeline.sh init workspace/tasks/my_image_page_v1 \
   --source-type image \
   --image /path/to/source.png
 ```
@@ -159,7 +163,7 @@ tools/m1-pipeline.sh init workspace/tasks/my_image_page_v1 \
 生成前可以先手动看一眼自动草拟的 HTML：
 
 ```bash
-tools/m1-pipeline.sh draft-html workspace/tasks/my_image_page_v1/task.json
+tools/pipeline.sh draft-html workspace/tasks/my_image_page_v1/task.json
 ```
 
 说明：
@@ -171,7 +175,7 @@ tools/m1-pipeline.sh draft-html workspace/tasks/my_image_page_v1/task.json
 ### 3. 生成 LVGL C 代码
 
 ```bash
-tools/m1-pipeline.sh generate workspace/tasks/my_page_v1/task.json
+tools/pipeline.sh generate workspace/tasks/my_page_v1/task.json
 ```
 
 生成器读取 `task.json` 中的 profile 配置，并使用：
@@ -189,7 +193,7 @@ tools/m1-pipeline.sh generate workspace/tasks/my_page_v1/task.json
 ### 4. 编译 + 截图 + 校验（一键完成）
 
 ```bash
-tools/m1-pipeline.sh run workspace/tasks/my_page_v1/task.json
+tools/pipeline.sh run workspace/tasks/my_page_v1/task.json
 ```
 
 `run` 命令自动执行完整流水线：
@@ -198,7 +202,7 @@ tools/m1-pipeline.sh run workspace/tasks/my_page_v1/task.json
 3. 编译 → SDL 模拟器渲染 → 截图 → 像素级 diff 校验
 
 当前默认使用单页隔离模式：
-- 每个 task 使用独立 build 目录，例如 `m1_real_project/build/demo-v1/`
+- 每个 task 使用独立 build 目录，例如 `runtime_project/build/demo-v1/`
 - 当前 task 只注册并编译自己的 generated page，不再把其它 workspace 页面一起编进来
 - 这样可以避免“别的页面编译失败影响当前页面运行”
 
@@ -220,7 +224,7 @@ tools/m1-pipeline.sh run workspace/tasks/my_page_v1/task.json
 ### 5. 导出交付包
 
 ```bash
-tools/m1-pipeline.sh export workspace/tasks/my_page_v1/task.json
+tools/pipeline.sh export workspace/tasks/my_page_v1/task.json
 ```
 
 将生成的 `.c/.h` 和资源打包到 `export/portable_bundle/`，可直接复制到嵌入式固件项目中使用。
@@ -289,7 +293,7 @@ LLM 生成的页面代码必须遵循以下约束（详见 [docs/llm_codegen_rul
 
 ```text
 lvgl_agent/
-├── m1_real_project/       # 主工程：运行时、注册中心、手写示例页面
+├── runtime_project/       # 运行时主工程
 │   ├── src/               # main.c, page_registry, token_page, home_page
 │   ├── workflow/          # 页面级任务 schema 和配置
 │   ├── references/        # 参考图 (PNG)
@@ -320,16 +324,16 @@ lvgl_agent/
 
 ### 分层职责
 
-- **页面层** (`m1_real_project/src/`) — 每个页面实现 `xxx_page_create()` 和 `xxx_page_get_content_root()`
-- **注册层** (`page_registry.c`) — 页面 id → 函数映射，workspace 任务通过 `m1-sync-generated-pages.py` 自动注册
-- **运行层** (`main.c`) — LVGL + SDL 初始化，通过 `M1_PAGE` 环境变量选择页面，支持 viewport 和整页两种截图模式
-- **校验层** (`m1-page-validate.py`) — PIL 像素级 diff，输出三栏对比图和结构化 JSON 报告
-- **构建层** (`CMakeLists.txt`) — 从 `lv_conf.defaults` 生成配置，按 task 输出独立 `build/<task_id>/lvgl_m1_demo`
+- **页面层** (`runtime_project/src/`) — 每个页面实现 `xxx_page_create()` 和 `xxx_page_get_content_root()`
+- **注册层** (`page_registry.c`) — 页面 id → 函数映射，workspace 任务通过 `sync-generated-pages.py` 自动注册
+- **运行层** (`main.c`) — LVGL + SDL 初始化，通过 `LVGL_PAGE` 环境变量选择页面，支持 viewport 和整页两种截图模式
+- **校验层** (`page-validate.py`) — PIL 像素级 diff，输出三栏对比图和结构化 JSON 报告
+- **构建层** (`CMakeLists.txt`) — 从 `lv_conf.defaults` 生成配置，按 task 输出独立 `build/<task_id>/lvgl_runtime_demo`
 
 ### CMake 依赖
 
 ```text
-lvgl_m1_demo (executable)
+lvgl_runtime_demo (executable)
   ├── src/main.c, page_registry.c, home_page.c, token_page.c
   ├── generated_page_registry.c (workspace 任务自动生成)
   └── lvgl (static library) → SDL2, SDL2_image, FreeType, lodepng
@@ -339,62 +343,65 @@ lvgl_m1_demo (executable)
 
 | 脚本 | 说明 |
 |------|------|
-| `tools/m1-doctor.py` | 环境自检，检查依赖、仓库内 SDL2_image fallback、浏览器截图工具和 CMake configure |
-| `tools/m1-pipeline.sh` | 任务流水线统一入口（doctor/quickstart/init/draft-html/generate/render-ref/sync/lint/run/export） |
-| `tools/m1-image-to-html.py` | 图片 → HTML 草稿 |
-| `tools/m1-generate-page.py` | HTML → LVGL C 代码生成 |
-| `tools/m1-render-html-ref.py` | HTML 参考图渲染 |
-| `tools/m1-page-validate.py` | PIL 像素级 diff 校验器 |
-| `tools/m1-portability-lint.py` | 可移植性静态检查 |
-| `tools/m1-sync-generated-pages.py` | workspace 任务自动注册桥接 |
-| `tools/m1-task-init.py` | 任务目录初始化 |
-| `tools/m1-task-run.py` | 任务执行器 |
-| `tools/m1-export-page.py` | 页面导出打包 |
-| `tools/lvgl-m1-real.sh` | 主工程编译/运行/截图（底层） |
-| `tools/m1-page-flow.sh` | 页面级校验闭环（底层） |
+| `tools/doctor.py` | 环境自检，检查依赖、仓库内 SDL2_image fallback、浏览器截图工具和 CMake configure |
+| `tools/pipeline.sh` | 任务流水线统一入口（doctor/quickstart/init/draft-html/generate/render-ref/sync/lint/run/export） |
+| `tools/image-to-html.py` | 图片 → HTML 草稿 |
+| `tools/generate-page.py` | HTML → LVGL C 代码生成 |
+| `tools/render-html-ref.py` | HTML 参考图渲染 |
+| `tools/page-validate.py` | PIL 像素级 diff 校验器 |
+| `tools/portability-lint.py` | 可移植性静态检查 |
+| `tools/sync-generated-pages.py` | workspace 任务自动注册桥接 |
+| `tools/task-init.py` | 任务目录初始化 |
+| `tools/task-run.py` | 任务执行器 |
+| `tools/export-page.py` | 页面导出打包 |
+| `tools/lvgl-runtime.sh` | 主工程编译/运行/截图（底层） |
+| `tools/page-flow.sh` | 页面级校验闭环（底层） |
 
 ## 手动操作参考
 
-以下命令用于调试或单步执行，日常使用推荐通过 `m1-pipeline.sh` 驱动。
+以下命令用于调试或单步执行，日常使用推荐通过 `pipeline.sh` 驱动。
 
 ```bash
 # 环境自检
-tools/m1-pipeline.sh doctor
+tools/pipeline.sh doctor
 
 # 跑内置 demo
-tools/m1-pipeline.sh quickstart
+tools/pipeline.sh quickstart
 
 # 查看已注册页面
-tools/lvgl-m1-real.sh list-pages
+tools/lvgl-runtime.sh list-pages
 
 # GUI 运行（需要桌面环境）
-M1_PAGE=token tools/lvgl-m1-real.sh run
+LVGL_PAGE=token tools/lvgl-runtime.sh run
 
 # 单独截图
-M1_PAGE=token tools/lvgl-m1-real.sh screenshot output.png
+LVGL_PAGE=token tools/lvgl-runtime.sh screenshot output.png
 
 # 单独校验
-tools/m1-page-flow.sh validate token
+tools/page-flow.sh validate token
 ```
 
-对于 workspace task 页面，`tools/lvgl-m1-real.sh` 现在支持仅通过 `M1_PAGE` 自动推导运行上下文：
+对于 workspace task 页面，`tools/lvgl-runtime.sh` 现在支持仅通过 `LVGL_PAGE` 自动推导运行上下文：
 
 ```bash
-M1_PAGE=demo_page tools/lvgl-m1-real.sh run
-M1_PAGE=stitch_smart_home_panel tools/lvgl-m1-real.sh screenshot output.png
+LVGL_PAGE=demo_page tools/lvgl-runtime.sh run
+LVGL_PAGE=stitch_smart_home_panel tools/lvgl-runtime.sh screenshot output.png
 ```
 
 行为说明：
 - 自动从 `workspace/tasks/*/task.json` 反查对应的 `page_id`
-- 自动推导对应的隔离 build 目录，例如 `m1_real_project/build/demo-v1/`
-- 如果未显式传入 `M1_TASK_JSON`，会自动读取 task 里的 `target.viewport`
+- 自动推导对应的隔离 build 目录，例如 `runtime_project/build/demo-v1/`
+- 如果未显式传入 `LVGL_TASK_JSON`，会自动读取 task 里的 `target.viewport`
 - 如果目标二进制尚未构建，会自动执行 `configure + build`
 
 手动传参仍然有效，并且优先级更高：
-- `M1_TASK_JSON`
-- `M1_BUILD_DIR`
-- `M1_VIEWPORT_WIDTH`
-- `M1_VIEWPORT_HEIGHT`
+- `LVGL_TASK_JSON`
+- `LVGL_BUILD_DIR`
+- `LVGL_VIEWPORT_WIDTH`
+- `LVGL_VIEWPORT_HEIGHT`
+
+兼容性说明：
+- 旧的 `M1_PAGE`、`M1_TASK_JSON`、`M1_BUILD_DIR`、`M1_VIEWPORT_WIDTH`、`M1_VIEWPORT_HEIGHT` 仍可继续使用
 
 ## 文档索引
 

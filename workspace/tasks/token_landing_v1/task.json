@@ -19,15 +19,15 @@
     "language": "zh-CN"
   },
   "generation": {
-    "output_c": "../../../m1_real_project/src/token_page.c",
-    "output_h": "../../../m1_real_project/src/token_page.h",
+    "output_c": "../../../runtime_project/src/token_page.c",
+    "output_h": "../../../runtime_project/src/token_page.h",
     "component_mode": "portable",
     "allow_custom_draw": false,
     "allow_freetype": false,
     "allow_filesystem_assets": true
   },
   "reference": {
-    "image": "../../../m1_real_project/references/token-reference.png",
+    "image": "../../../runtime_project/references/token-reference.png",
     "render_from_html": false
   },
   "validation": {

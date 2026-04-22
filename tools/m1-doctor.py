@@ -11,7 +11,7 @@ from typing import List, Optional
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PROJECT_DIR = REPO_ROOT / "m1_real_project"
+PROJECT_DIR = REPO_ROOT / "runtime_project"
 BUILD_DIR = PROJECT_DIR / "build"
 DEMO_TASK = REPO_ROOT / "workspace" / "tasks" / "demo_v1" / "task.json"
 DEMO_REFERENCE = REPO_ROOT / "workspace" / "tasks" / "demo_v1" / "reference" / "reference.png"
@@ -190,7 +190,7 @@ def main() -> int:
     print(f"\nSummary: {error_count} error(s), {warn_count} warning(s)")
 
     if error_count == 0:
-        print("Next step: `tools/m1-pipeline.sh quickstart`")
+        print("Next step: `tools/pipeline.sh quickstart`")
 
     return 1 if error_count else 0
 

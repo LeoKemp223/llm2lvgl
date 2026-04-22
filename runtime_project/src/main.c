@@ -17,7 +17,17 @@
 
 #define SCREENSHOT_SETTLE_ITERATIONS 5
 
-static const m1_page_descriptor_t * g_active_page = NULL;
+static const lvgl_page_descriptor_t * g_active_page = NULL;
+
+static const char * get_preferred_env(const char * preferred_name, const char * legacy_name)
+{
+    const char * value = getenv(preferred_name);
+    if(value != NULL && value[0] != '\0') {
+        return value;
+    }
+
+    return getenv(legacy_name);
+}
 
 static int get_env_dimension(const char * name, int fallback)
 {
@@ -171,8 +181,8 @@ static int maybe_capture_and_exit(void)
 
 static lv_display_t * create_display(void)
 {
-    int width = get_env_dimension("M1_VIEWPORT_WIDTH", 1280);
-    int height = get_env_dimension("M1_VIEWPORT_HEIGHT", 800);
+    int width = get_env_dimension("LVGL_VIEWPORT_WIDTH", get_env_dimension("M1_VIEWPORT_WIDTH", 1280));
+    int height = get_env_dimension("LVGL_VIEWPORT_HEIGHT", get_env_dimension("M1_VIEWPORT_HEIGHT", 800));
     lv_display_t * display = lv_sdl_window_create(width, height);
     if(display == NULL) {
         return NULL;
@@ -197,11 +207,11 @@ static lv_display_t * create_display(void)
 
 static void print_available_pages(void)
 {
-    const m1_page_descriptor_t * pages = NULL;
+    const lvgl_page_descriptor_t * pages = NULL;
     size_t count = 0;
     size_t i;
 
-    pages = m1_page_list(&count);
+    pages = lvgl_page_list(&count);
     fprintf(stdout, "Available pages:\n");
     for(i = 0; i < count; ++i) {
         fprintf(stdout, "  %s\t%s\n", pages[i].id, pages[i].name);
@@ -211,7 +221,7 @@ static void print_available_pages(void)
 static const char * resolve_requested_page_id(int argc, char ** argv)
 {
     int i;
-    const char * env_page = getenv("M1_PAGE");
+    const char * env_page = get_preferred_env("LVGL_PAGE", "M1_PAGE");
 
     for(i = 1; i < argc; ++i) {
         if(strcmp(argv[i], "--page") == 0 && i + 1 < argc) {
@@ -250,7 +260,7 @@ int main(int argc, char ** argv)
     lv_display_set_theme(display, NULL);
 
     requested_page_id = resolve_requested_page_id(argc, argv);
-    g_active_page = m1_page_find(requested_page_id);
+    g_active_page = lvgl_page_find(requested_page_id);
     if(g_active_page == NULL) {
         fprintf(stderr, "Unknown page id: %s\n", requested_page_id);
         print_available_pages();

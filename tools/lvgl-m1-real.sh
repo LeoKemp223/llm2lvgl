@@ -4,12 +4,46 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-PROJECT_DIR="${ROOT_DIR}/m1_real_project"
+PROJECT_DIR="${ROOT_DIR}/runtime_project"
 DEFAULT_BUILD_DIR="${PROJECT_DIR}/build"
 TASKS_ROOT="${ROOT_DIR}/workspace/tasks"
 DEP_ROOT="${ROOT_DIR}/.deps/sdl2-image/root/usr"
 PKG_CONFIG_PATH_VALUE="${DEP_ROOT}/lib/x86_64-linux-gnu/pkgconfig"
 LIB_DIR="${DEP_ROOT}/lib/x86_64-linux-gnu"
+
+sync_env_aliases() {
+    if [[ -n "${LVGL_PAGE:-}" && -z "${M1_PAGE:-}" ]]; then
+        export M1_PAGE="${LVGL_PAGE}"
+    fi
+    if [[ -n "${LVGL_BUILD_DIR:-}" && -z "${M1_BUILD_DIR:-}" ]]; then
+        export M1_BUILD_DIR="${LVGL_BUILD_DIR}"
+    fi
+    if [[ -n "${LVGL_TASK_JSON:-}" && -z "${M1_TASK_JSON:-}" ]]; then
+        export M1_TASK_JSON="${LVGL_TASK_JSON}"
+    fi
+    if [[ -n "${LVGL_VIEWPORT_WIDTH:-}" && -z "${M1_VIEWPORT_WIDTH:-}" ]]; then
+        export M1_VIEWPORT_WIDTH="${LVGL_VIEWPORT_WIDTH}"
+    fi
+    if [[ -n "${LVGL_VIEWPORT_HEIGHT:-}" && -z "${M1_VIEWPORT_HEIGHT:-}" ]]; then
+        export M1_VIEWPORT_HEIGHT="${LVGL_VIEWPORT_HEIGHT}"
+    fi
+
+    if [[ -n "${M1_PAGE:-}" ]]; then
+        export LVGL_PAGE="${M1_PAGE}"
+    fi
+    if [[ -n "${M1_BUILD_DIR:-}" ]]; then
+        export LVGL_BUILD_DIR="${M1_BUILD_DIR}"
+    fi
+    if [[ -n "${M1_TASK_JSON:-}" ]]; then
+        export LVGL_TASK_JSON="${M1_TASK_JSON}"
+    fi
+    if [[ -n "${M1_VIEWPORT_WIDTH:-}" ]]; then
+        export LVGL_VIEWPORT_WIDTH="${M1_VIEWPORT_WIDTH}"
+    fi
+    if [[ -n "${M1_VIEWPORT_HEIGHT:-}" ]]; then
+        export LVGL_VIEWPORT_HEIGHT="${M1_VIEWPORT_HEIGHT}"
+    fi
+}
 
 env_with_local_sdl() {
     if [[ -f "${PKG_CONFIG_PATH_VALUE}/SDL2_image.pc" ]]; then
@@ -24,17 +58,17 @@ env_with_local_sdl() {
 }
 
 current_build_dir() {
-    printf '%s\n' "${M1_BUILD_DIR:-${DEFAULT_BUILD_DIR}}"
+    printf '%s\n' "${LVGL_BUILD_DIR:-${M1_BUILD_DIR:-${DEFAULT_BUILD_DIR}}}"
 }
 
 current_bin_path() {
-    printf '%s/lvgl_m1_demo\n' "$(current_build_dir)"
+    printf '%s/lvgl_runtime_demo\n' "$(current_build_dir)"
 }
 
 infer_task_json_from_page() {
     local resolved
 
-    if [[ -n "${M1_TASK_JSON:-}" || -z "${M1_PAGE:-}" ]]; then
+    if [[ -n "${LVGL_TASK_JSON:-${M1_TASK_JSON:-}}" || -z "${LVGL_PAGE:-${M1_PAGE:-}}" ]]; then
         return
     fi
 
@@ -58,17 +92,18 @@ if len(matches) > 1:
     raise SystemExit(f"Multiple tasks found for page_id={page_id}: {matches}")
 
 print(matches[0] if matches else "")
-' "${TASKS_ROOT}" "${M1_PAGE}")"
+' "${TASKS_ROOT}" "${LVGL_PAGE:-${M1_PAGE}}")"
 
     if [[ -n "${resolved}" ]]; then
         export M1_TASK_JSON="${resolved}"
+        export LVGL_TASK_JSON="${resolved}"
     fi
 }
 
 infer_build_dir_from_task() {
     local resolved
 
-    if [[ -n "${M1_BUILD_DIR:-}" || -z "${M1_TASK_JSON:-}" ]]; then
+    if [[ -n "${LVGL_BUILD_DIR:-${M1_BUILD_DIR:-}}" || -z "${LVGL_TASK_JSON:-${M1_TASK_JSON:-}}" ]]; then
         return
     fi
 
@@ -84,19 +119,20 @@ task = json.loads(task_path.read_text(encoding="utf-8"))
 task_key = task.get("task_id") or task_path.parent.name or task["page_id"]
 task_key = re.sub(r"[^a-z0-9]+", "-", task_key.strip().lower()).strip("-") or "task"
 print((build_root / task_key).as_posix())
-' "${M1_TASK_JSON}" "${DEFAULT_BUILD_DIR}")"
+' "${LVGL_TASK_JSON:-${M1_TASK_JSON}}" "${DEFAULT_BUILD_DIR}")"
 
     export M1_BUILD_DIR="${resolved}"
+    export LVGL_BUILD_DIR="${resolved}"
 }
 
 apply_task_viewport_env() {
     local viewport width height
 
-    if [[ -z "${M1_TASK_JSON:-}" ]]; then
+    if [[ -z "${LVGL_TASK_JSON:-${M1_TASK_JSON:-}}" ]]; then
         return
     fi
 
-    if [[ -n "${M1_VIEWPORT_WIDTH:-}" && -n "${M1_VIEWPORT_HEIGHT:-}" ]]; then
+    if [[ -n "${LVGL_VIEWPORT_WIDTH:-${M1_VIEWPORT_WIDTH:-}}" && -n "${LVGL_VIEWPORT_HEIGHT:-${M1_VIEWPORT_HEIGHT:-}}" ]]; then
         return
     fi
 
@@ -108,12 +144,14 @@ from pathlib import Path
 task = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 viewport = task["target"]["viewport"]
 print(f"{int(viewport['\''width'\''])} {int(viewport['\''height'\''])}")
-' "${M1_TASK_JSON}")"
+' "${LVGL_TASK_JSON:-${M1_TASK_JSON}}")"
     read -r width height <<<"${viewport}"
 
-    : "${M1_VIEWPORT_WIDTH:=${width}}"
-    : "${M1_VIEWPORT_HEIGHT:=${height}}"
-    export M1_VIEWPORT_WIDTH M1_VIEWPORT_HEIGHT
+    : "${LVGL_VIEWPORT_WIDTH:=${M1_VIEWPORT_WIDTH:-${width}}}"
+    : "${LVGL_VIEWPORT_HEIGHT:=${M1_VIEWPORT_HEIGHT:-${height}}}"
+    export LVGL_VIEWPORT_WIDTH LVGL_VIEWPORT_HEIGHT
+    export M1_VIEWPORT_WIDTH="${LVGL_VIEWPORT_WIDTH}"
+    export M1_VIEWPORT_HEIGHT="${LVGL_VIEWPORT_HEIGHT}"
 }
 
 resolve_task_context() {
@@ -145,8 +183,8 @@ configure() {
     build_dir="$(current_build_dir)"
     args+=(-B "${build_dir}")
 
-    if [[ -n "${M1_TASK_JSON:-}" ]]; then
-        args+=("-DM1_TASK_JSON=${M1_TASK_JSON}")
+    if [[ -n "${LVGL_TASK_JSON:-${M1_TASK_JSON:-}}" ]]; then
+        args+=("-DLVGL_TASK_JSON=${LVGL_TASK_JSON:-${M1_TASK_JSON}}")
     fi
 
     env_with_local_sdl cmake "${args[@]}"
@@ -197,29 +235,34 @@ list_pages() {
 }
 
 usage() {
-    cat <<'EOF'
-Usage: tools/lvgl-m1-real.sh <command>
+    local script_name="${LVGL_RUNTIME_NAME:-lvgl-runtime.sh}"
+
+    cat <<EOF
+Usage: tools/${script_name} <command>
 
 Commands:
-  configure      Configure the standalone M1 LVGL project
-  build          Build the standalone M1 LVGL project
-  rebuild        Clean and rebuild the standalone M1 LVGL project
-  run            Run the standalone M1 LVGL project with a real window
-  run-headless   Run the standalone M1 LVGL project headlessly
+  configure      Configure the standalone LVGL runtime project
+  build          Build the standalone LVGL runtime project
+  rebuild        Clean and rebuild the standalone LVGL runtime project
+  run            Run the standalone LVGL runtime project with a real window
+  run-headless   Run the standalone LVGL runtime project headlessly
   screenshot     Run headlessly, save a PNG screenshot, then exit
   screenshot-full
                  Run headlessly, save a full content PNG screenshot, then exit
   list-pages     Print the registered page ids
 
 Environment:
-  M1_PAGE        Select the active page id for run/screenshot commands.
-                 For workspace task pages, also auto-infers M1_TASK_JSON and M1_BUILD_DIR when omitted.
-  M1_BUILD_DIR   Override the CMake build directory
-  M1_TASK_JSON   Limit configure/build to a single task.json.
-                 Also auto-fills M1_VIEWPORT_WIDTH/HEIGHT from target.viewport when omitted.
+  LVGL_PAGE      Preferred page selector for run/screenshot commands.
+                 The legacy alias M1_PAGE is still supported.
+  LVGL_BUILD_DIR Preferred CMake build directory override.
+                 The legacy alias M1_BUILD_DIR is still supported.
+  LVGL_TASK_JSON Preferred single-task configure/build target.
+                 The legacy alias M1_TASK_JSON is still supported.
+                 When task context is inferred, LVGL_VIEWPORT_WIDTH/HEIGHT are auto-filled from target.viewport.
 EOF
 }
 
+sync_env_aliases
 cmd="${1:-}"
 
 case "${cmd}" in

@@ -12,7 +12,7 @@ from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TOOLS_DIR = REPO_ROOT / "tools"
-PROJECT_DIR = REPO_ROOT / "m1_real_project"
+PROJECT_DIR = REPO_ROOT / "runtime_project"
 BUILD_ROOT = PROJECT_DIR / "build"
 
 
@@ -39,6 +39,11 @@ def task_build_dir(task_path: Path, task: dict) -> Path:
 
 def task_env(task_path: Path, task: dict, build_dir: Path) -> dict:
     env = os.environ.copy()
+    env["LVGL_BUILD_DIR"] = str(build_dir)
+    env["LVGL_TASK_JSON"] = str(task_path)
+    env["LVGL_PAGE"] = task["page_id"]
+    env["LVGL_VIEWPORT_WIDTH"] = str(int(task["target"]["viewport"]["width"]))
+    env["LVGL_VIEWPORT_HEIGHT"] = str(int(task["target"]["viewport"]["height"]))
     env["M1_BUILD_DIR"] = str(build_dir)
     env["M1_TASK_JSON"] = str(task_path)
     env["M1_PAGE"] = task["page_id"]
@@ -82,7 +87,7 @@ def make_legacy_compat_task(task_path: Path, task: dict) -> Path:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run a workspace task against the current M1 simulator bridge.")
+    parser = argparse.ArgumentParser(description="Run a workspace task against the current LVGL simulator bridge.")
     parser.add_argument("--task", required=True, help="Path to task.json")
     parser.add_argument("--rerender-ref", action="store_true", help="Force rerender of the HTML reference before validation")
     parser.add_argument("--skip-sync", action="store_true", help="Skip regenerating workspace page registry files")
@@ -115,8 +120,8 @@ def main() -> int:
         ], env=cmd_env)
 
     if not args.skip_configure:
-        run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "configure"], env=cmd_env)
-    run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "build"], env=cmd_env)
+        run([str(TOOLS_DIR / "lvgl-runtime.sh"), "configure"], env=cmd_env)
+    run([str(TOOLS_DIR / "lvgl-runtime.sh"), "build"], env=cmd_env)
 
     artifacts_dir = task_path.parent / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -125,9 +130,9 @@ def main() -> int:
     diff_path = artifacts_dir / "diff.png"
     report_path = artifacts_dir / "report.json"
 
-    run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "screenshot", str(current_path)], env=cmd_env)
+    run([str(TOOLS_DIR / "lvgl-runtime.sh"), "screenshot", str(current_path)], env=cmd_env)
     if not args.skip_full_screenshot:
-        run([str(TOOLS_DIR / "lvgl-m1-real.sh"), "screenshot-full", str(full_path)], env=cmd_env)
+        run([str(TOOLS_DIR / "lvgl-runtime.sh"), "screenshot-full", str(full_path)], env=cmd_env)
 
     compat_task_path = make_legacy_compat_task(task_path, task)
     validator_status = run([

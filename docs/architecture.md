@@ -13,23 +13,23 @@ Keep the repository on a task-driven path for:
 
 The repository is no longer just a hand-written page sandbox.
 
-It now has a working task pipeline on top of the original M1 simulator loop:
+It now has a working task pipeline on top of the original simulator loop:
 
 - `workspace/tasks/<task_id>/task.json` is the first-class task entry
-- `tools/m1-task-init.py` scaffolds new tasks
-- `tools/m1-generate-page.py` generates LVGL page code from HTML input
-- `tools/m1-render-html-ref.py` renders HTML reference screenshots
-- `tools/m1-portability-lint.py` enforces portability constraints
-- `tools/m1-task-run.py` bridges generated tasks into the current simulator build
-- `tools/m1-export-page.py` exports generated output as a portable bundle
-- `tools/m1-pipeline.sh` is the unified CLI entrypoint
+- `tools/task-init.py` scaffolds new tasks
+- `tools/generate-page.py` generates LVGL page code from HTML input
+- `tools/render-html-ref.py` renders HTML reference screenshots
+- `tools/portability-lint.py` enforces portability constraints
+- `tools/task-run.py` bridges generated tasks into the current simulator build
+- `tools/export-page.py` exports generated output as a portable bundle
+- `tools/pipeline.sh` is the unified CLI entrypoint
 
-The legacy M1 layer is still present and still important:
+The legacy internal layer is still present and still important:
 
-- `m1_real_project/` remains the executable LVGL runtime and screenshot target
-- `tools/lvgl-m1-real.sh` still handles configure/build/run/screenshot operations
-- `tools/m1-page-validate.py` still produces `diff.png` and `report.json`
-- `tools/m1-page-flow.sh` remains the compatibility path for legacy page tasks
+- `runtime_project/` remains the executable LVGL runtime and screenshot target
+- `tools/lvgl-runtime.sh` handles configure/build/run/screenshot operations
+- `tools/page-validate.py` produces `diff.png` and `report.json`
+- `tools/page-flow.sh` remains the compatibility path for legacy page tasks
 
 ## Target Flow
 
@@ -111,14 +111,14 @@ Profiles such as `sim_1280x800.json`, `sim_480x480.json`, `stm32_800x480.json`, 
 The main task entrypoint is:
 
 ```bash
-tools/m1-pipeline.sh doctor
-tools/m1-pipeline.sh init <task-dir>
-tools/m1-pipeline.sh generate <task.json>
-tools/m1-pipeline.sh render-ref <task.json>
-tools/m1-pipeline.sh sync
-tools/m1-pipeline.sh lint <task.json>
-tools/m1-pipeline.sh run <task.json>
-tools/m1-pipeline.sh export <task.json>
+tools/pipeline.sh doctor
+tools/pipeline.sh init <task-dir>
+tools/pipeline.sh generate <task.json>
+tools/pipeline.sh render-ref <task.json>
+tools/pipeline.sh sync
+tools/pipeline.sh lint <task.json>
+tools/pipeline.sh run <task.json>
+tools/pipeline.sh export <task.json>
 ```
 
 Current implementation status:
@@ -129,7 +129,7 @@ Current implementation status:
 - `render-ref`: implemented
 - `sync`: implemented
 - `lint`: implemented
-- `run`: implemented through `m1-task-run.py`, which still reuses the legacy simulator and diff validation path
+- `run`: implemented through `tools/task-run.py`, which still reuses the legacy simulator and diff validation path
 - `export`: implemented for generated output bundles
 
 Pending:
@@ -145,13 +145,13 @@ Generated tasks do not compile in isolation.
 The current runtime path is:
 
 1. generate task-local `.c/.h`
-2. sync all generated pages into `m1_real_project/build/generated_page_registry.*`
-3. let `m1_real_project/CMakeLists.txt` include the generated source list
-4. build `lvgl_m1_demo`
+2. sync all generated pages into `runtime_project/build/generated_page_registry.*`
+3. let `runtime_project/CMakeLists.txt` include the generated source list
+4. build `lvgl_runtime_demo`
 5. run screenshots against the selected `page_id`
 
 This means automatic generated-page registration and CMake source discovery are already present,
-but they are implemented as a bridge into the existing M1 runtime rather than as a new standalone runner.
+but they are implemented as a bridge into the existing runtime rather than as a new standalone runner.
 
 ## Implementation Status
 
@@ -162,14 +162,14 @@ but they are implemented as a bridge into the existing M1 runtime rather than as
 - HTML reference rendering for task validation
 - rule-based HTML-to-LVGL generation
 - portability lint before simulator validation
-- generated-page auto-sync into the M1 build
+- generated-page auto-sync into the runtime build
 - portable bundle export
 
 ### In Progress / Remaining Gaps
 
 - the default generator is still rule-based and intentionally limited
 - validation is still screenshot-driven, even when the reference comes from HTML
-- the runtime still depends on the M1 executable bridge instead of a dedicated task-native runner
+- the runtime still depends on the legacy executable bridge instead of a dedicated task-native runner
 - exported bundles are portable page artifacts, not a full firmware integration package
 - multi-task sync robustness still needs hardening
 

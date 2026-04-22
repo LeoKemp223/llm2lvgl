@@ -78,4 +78,4 @@ Generated output must satisfy both:
 
 ## Migration Note
 
-Existing example pages in `m1_real_project/src/` predate these rules and may violate them. Treat them as visual examples, not as final codegen references.
+Existing example pages in `runtime_project/src/` predate these rules and may violate them. Treat them as visual examples, not as final codegen references.

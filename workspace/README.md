@@ -13,5 +13,5 @@ Each task lives under `workspace/tasks/<task_id>/` and contains:
 Create a new task with:
 
 ```bash
-tools/m1-pipeline.sh init workspace/tasks/<task_id>
+tools/pipeline.sh init workspace/tasks/<task_id>
 ```

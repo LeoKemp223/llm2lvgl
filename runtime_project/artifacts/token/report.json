@@ -1,9 +1,9 @@
 {
   "task": "token",
   "page_name": "Token Landing Page",
-  "reference_image": "/home/leo/work/open-git/lvgl_agent/m1_real_project/references/token-reference.png",
-  "current_image": "/home/leo/work/open-git/lvgl_agent/m1_real_project/artifacts/token/current.png",
-  "diff_image": "/home/leo/work/open-git/lvgl_agent/m1_real_project/artifacts/token/diff.png",
+  "reference_image": "/home/leo/work/open-git/llm2lvgl/runtime_project/references/token-reference.png",
+  "current_image": "/home/leo/work/open-git/llm2lvgl/runtime_project/artifacts/token/current.png",
+  "diff_image": "/home/leo/work/open-git/llm2lvgl/runtime_project/artifacts/token/diff.png",
   "size_match": false,
   "resized_for_comparison": true,
   "reference_size": [
@@ -14,10 +14,10 @@
     1280,
     800
   ],
-  "changed_pixels": 465483,
+  "changed_pixels": 464687,
   "total_pixels": 3686400,
-  "diff_ratio": 0.12627034505208334,
-  "mean_abs_diff": 16.05336697048611,
+  "diff_ratio": 0.12605441623263888,
+  "mean_abs_diff": 15.931894712094907,
   "diff_bbox": [
     28,
     32,
