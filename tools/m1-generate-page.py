@@ -5,6 +5,8 @@ import html
 import json
 import os
 import re
+import subprocess
+import sys
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
@@ -900,13 +902,14 @@ def write_codegen_prompt(task_path: Path, task: dict, profile: dict, html_info: 
 
 
 def write_manifest(task_path: Path, task: dict, profile: dict, html_info: Dict[str, object]) -> None:
+    source_type = task.get("input", {}).get("source_type", "html")
     manifest = {
         "task_id": task["task_id"],
         "page_id": task["page_id"],
         "page_name": task["page_name"],
         "profile": profile["id"],
         "viewport": task["target"]["viewport"],
-        "driver": "rule_based_html_v1",
+        "driver": "image_to_html_v1+rule_based_html_v1" if source_type == "image" else "rule_based_html_v1",
         "html_title": html_info["title"],
         "item_count": len(html_info["items"]),
         "output_c": task["generation"]["output_c"],
@@ -918,6 +921,17 @@ def write_manifest(task_path: Path, task: dict, profile: dict, html_info: Dict[s
     )
 
 
+def ensure_html_input(task_path: Path, task: dict) -> Path:
+    html_path = resolve(task_path, task["input"]["html_entry"])
+    source_type = task.get("input", {}).get("source_type", "html")
+    if source_type == "image":
+        subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parent / "m1-image-to-html.py"), "--task", str(task_path)],
+            check=True,
+        )
+    return html_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate an LVGL page from task/profile/HTML inputs.")
     parser.add_argument("--task", required=True, help="Path to task.json")
@@ -927,7 +941,7 @@ def main() -> int:
     task = load_json(task_path)
     profile = load_json(resolve(task_path, task["target"]["profile"]))
     source_type = task.get("input", {}).get("source_type", "html")
-    html_path = resolve(task_path, task["input"]["html_entry"])
+    html_path = ensure_html_input(task_path, task)
     output_h = resolve(task_path, task["generation"]["output_h"])
     output_c = resolve(task_path, task["generation"]["output_c"])
 
@@ -956,9 +970,10 @@ def main() -> int:
     write_codegen_prompt(task_path, task, profile, html_info)
     write_manifest(task_path, task, profile, html_info)
 
+    driver = "image_to_html_v1+rule_based_html_v1" if source_type == "image" else "rule_based_html_v1"
     print(f"Generated page source: {output_c}")
     print(f"Generated page header: {output_h}")
-    print(f"Driver: rule_based_html_v1")
+    print(f"Driver: {driver}")
     return 0
 
 

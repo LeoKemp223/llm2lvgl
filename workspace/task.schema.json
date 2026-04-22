@@ -40,10 +40,14 @@
           "type": "string",
           "enum": [
             "html",
+            "image",
             "reference_only"
           ]
         },
         "html_entry": {
+          "type": "string"
+        },
+        "image_entry": {
           "type": "string"
         },
         "assets_dir": {

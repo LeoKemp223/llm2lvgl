@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 
 
@@ -26,14 +27,22 @@ def relative_posix(from_dir: Path, to_path: Path) -> str:
     return Path(os.path.relpath(to_path.resolve(), from_dir.resolve())).as_posix()
 
 
-def build_task_payload(task_dir: Path, page_id: str, page_name: str, profile_path: Path) -> dict:
+def build_task_payload(
+    task_dir: Path,
+    page_id: str,
+    page_name: str,
+    profile_path: Path,
+    source_type: str,
+    image_entry: str,
+) -> dict:
     return {
         "task_id": task_dir.name,
         "page_id": page_id,
         "page_name": page_name,
         "input": {
-            "source_type": "html",
+            "source_type": source_type,
             "html_entry": "input/index.html",
+            "image_entry": image_entry,
             "assets_dir": "input/assets",
             "notes_file": "input/notes.md",
         },
@@ -51,12 +60,13 @@ def build_task_payload(task_dir: Path, page_id: str, page_name: str, profile_pat
             "output_c": f"generated/{page_id}_page.c",
             "output_h": f"generated/{page_id}_page.h",
             "component_mode": "portable",
+            "allow_custom_draw": False,
             "allow_freetype": False,
             "allow_filesystem_assets": False,
         },
         "reference": {
-            "image": "reference/reference.png",
-            "render_from_html": True,
+            "image": image_entry if source_type == "image" else "reference/reference.png",
+            "render_from_html": source_type != "image",
         },
         "validation": {
             "pixel_diff_threshold": 16,
@@ -80,13 +90,13 @@ def build_task_payload(task_dir: Path, page_id: str, page_name: str, profile_pat
             "legacy_page_flow_task": None,
         },
         "notes": [
-            "Fill input/index.html with the target page HTML.",
+            "Fill input/index.html with the target page HTML." if source_type == "html" else "Put the source screenshot under input/ and let the pipeline draft HTML from it.",
             "Replace the simulator profile with the real board profile before export.",
         ],
     }
 
 
-def ensure_seed_files(task_dir: Path, page_id: str, page_name: str) -> None:
+def ensure_seed_files(task_dir: Path, page_id: str, page_name: str, source_type: str) -> None:
     html_path = task_dir / "input" / "index.html"
     if not html_path.exists():
         html_path.write_text(
@@ -99,7 +109,7 @@ def ensure_seed_files(task_dir: Path, page_id: str, page_name: str) -> None:
             "  </head>\n"
             "  <body>\n"
             f"    <h1>{page_name}</h1>\n"
-            "    <p>Replace this placeholder with the real HTML input.</p>\n"
+            f"    <p>{'Replace this placeholder with the real HTML input.' if source_type == 'html' else 'This draft file will be regenerated from the source image during generate/run.'}</p>\n"
             "  </body>\n"
             "</html>\n",
             encoding="utf-8",
@@ -109,7 +119,7 @@ def ensure_seed_files(task_dir: Path, page_id: str, page_name: str) -> None:
     if not notes_path.exists():
         notes_path.write_text(
             f"# {page_name}\n\n"
-            "- Record layout notes here.\n"
+            f"- {'Record source-image interpretation notes here.' if source_type == 'image' else 'Record layout notes here.'}\n"
             "- Record board constraints here.\n",
             encoding="utf-8",
         )
@@ -168,6 +178,8 @@ def main() -> int:
     parser.add_argument("--page-id", help="Page id used for generated symbols and filenames")
     parser.add_argument("--page-name", help="Human-readable page name")
     parser.add_argument("--profile", default=str(DEFAULT_PROFILE), help="Board profile JSON path")
+    parser.add_argument("--source-type", choices=("html", "image"), default="html", help="Primary task input type")
+    parser.add_argument("--image", help="Optional source image to copy into the task when --source-type image")
     parser.add_argument("--force", action="store_true", help="Overwrite task.json if it already exists")
     args = parser.parse_args()
 
@@ -175,6 +187,7 @@ def main() -> int:
     page_id = slugify(args.page_id or task_dir.name)
     page_name = args.page_name or titleize(page_id)
     profile_path = Path(args.profile).resolve()
+    image_source = Path(args.image).resolve() if args.image else None
 
     if not profile_path.is_file():
         raise SystemExit(f"Profile not found: {profile_path}")
@@ -182,6 +195,11 @@ def main() -> int:
     profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
     if "version" not in profile_data:
         raise SystemExit(f"Profile missing 'version' field: {profile_path}")
+
+    if args.source_type != "image" and image_source is not None:
+        raise SystemExit("--image can only be used with --source-type image")
+    if image_source is not None and not image_source.is_file():
+        raise SystemExit(f"Image not found: {image_source}")
 
     task_dir.mkdir(parents=True, exist_ok=True)
     for rel_dir in ("input/assets", "reference", "generated", "artifacts", "export"):
@@ -191,13 +209,22 @@ def main() -> int:
     if task_path.exists() and not args.force:
         raise SystemExit(f"Task already exists: {task_path} (use --force to overwrite)")
 
-    payload = build_task_payload(task_dir, page_id, page_name, profile_path)
+    image_entry = "input/source.png"
+    if image_source is not None:
+        suffix = image_source.suffix.lower() or ".png"
+        image_entry = f"input/source{suffix}"
+
+    payload = build_task_payload(task_dir, page_id, page_name, profile_path, args.source_type, image_entry)
     task_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    ensure_seed_files(task_dir, page_id, page_name)
+    ensure_seed_files(task_dir, page_id, page_name, args.source_type)
+
+    if image_source is not None:
+        shutil.copy2(image_source, task_dir / image_entry)
 
     print(f"Created task: {task_path}")
     print(f"Page id: {page_id}")
     print(f"Profile: {profile_path}")
+    print(f"Source type: {args.source_type}")
     return 0
 
 
