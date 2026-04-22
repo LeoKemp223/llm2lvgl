@@ -1,7 +1,5 @@
 # LVGL Runtime Project
 
-主目录现在为 `runtime_project/`；仓库仍保留 `m1_real_project -> runtime_project` 兼容链接，避免旧脚本和旧任务立即失效。
-
 页面开发主工程，提供页面实现、页面路由、SDL 运行、截图导出、参考图校验的完整闭环。
 
 ## 目录结构
