@@ -40,7 +40,16 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
 
 第一次接触这个仓库，先不要自己建 task，先跑通内置 demo：
 
-### 1. 安装核心依赖
+### 1. 拉取运行时依赖
+
+这个仓库依赖上游 `lv_port_linux` 工作树作为 SDL/LVGL 运行时底座；如果你是新机器直接 clone 当前仓库，需要先补齐它：
+
+```bash
+git clone https://github.com/lvgl/lv_port_linux.git lv_port_linux_test
+git -C lv_port_linux_test submodule update --init --recursive
+```
+
+### 2. 安装核心依赖
 
 ```bash
 sudo apt update
@@ -50,7 +59,7 @@ sudo apt install -y \
   libsdl2-dev libsdl2-image-dev libfreetype6-dev
 ```
 
-### 2. 做一次环境自检
+### 3. 做一次环境自检
 
 ```bash
 tools/pipeline.sh doctor
@@ -63,7 +72,7 @@ tools/pipeline.sh doctor
 - 是否存在 HTML 参考图渲染工具（`chromium` 或 `wkhtmltoimage`）
 - 运行时主工程 `runtime_project/` 能否成功 `cmake configure`
 
-### 3. 跑内置 quickstart
+### 4. 跑内置 quickstart
 
 ```bash
 tools/pipeline.sh quickstart

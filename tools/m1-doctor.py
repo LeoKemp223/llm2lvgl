@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
@@ -12,7 +13,9 @@ from typing import List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROJECT_DIR = REPO_ROOT / "runtime_project"
-BUILD_DIR = PROJECT_DIR / "build"
+LV_PORT_DIR = REPO_ROOT / "lv_port_linux_test"
+LVGL_DIR = LV_PORT_DIR / "lvgl"
+DOCTOR_TMP_DIR = REPO_ROOT / ".tmp"
 DEMO_TASK = REPO_ROOT / "workspace" / "tasks" / "demo_v1" / "task.json"
 DEMO_REFERENCE = REPO_ROOT / "workspace" / "tasks" / "demo_v1" / "reference" / "reference.png"
 LOCAL_SDL2_IMAGE_ROOT = REPO_ROOT / ".deps" / "sdl2-image" / "root" / "usr"
@@ -65,6 +68,15 @@ def run_quiet(cmd: List[str], env: Optional[dict] = None) -> subprocess.Complete
         text=True,
         env=env,
     )
+
+
+def summarize_output(output: str, max_lines: int = 8) -> str:
+    lines = [line.rstrip() for line in output.splitlines() if line.strip()]
+    if not lines:
+        return "Unknown failure."
+    if len(lines) <= max_lines:
+        return "\n".join(lines)
+    return "\n".join(["..."] + lines[-max_lines:])
 
 
 def check_commands() -> List[CheckResult]:
@@ -145,6 +157,30 @@ def check_repo_files() -> List[CheckResult]:
         results.append(ok("Bundled quickstart reference image exists", str(DEMO_REFERENCE.relative_to(REPO_ROOT))))
     else:
         results.append(warn("Bundled quickstart reference image is missing", "Quickstart may need HTML rendering tools."))
+
+    missing_runtime_paths = [
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in (
+            PROJECT_DIR / "CMakeLists.txt",
+            LV_PORT_DIR / "CMakeLists.txt",
+            LVGL_DIR / "CMakeLists.txt",
+            LVGL_DIR / "scripts" / "generate_lv_conf.py",
+            REPO_ROOT / "tools" / "m1-sync-generated-pages.py",
+        )
+        if not path.is_file()
+    ]
+    if missing_runtime_paths:
+        results.append(
+            err(
+                "Runtime source checkout is incomplete",
+                "Missing "
+                + ", ".join(f"`{path}`" for path in missing_runtime_paths)
+                + ". Clone `https://github.com/lvgl/lv_port_linux.git` into `lv_port_linux_test/`, then run "
+                + "`git -C lv_port_linux_test submodule update --init --recursive`.",
+            )
+        )
+    else:
+        results.append(ok("Runtime source checkout exists", "`lv_port_linux_test/` and nested `lvgl/` are present"))
     return results
 
 
@@ -152,12 +188,18 @@ def check_cmake_configure(core_ready: bool) -> CheckResult:
     if not core_ready:
         return warn("Skipped CMake configure check", "Fix core dependency errors first.")
 
-    completed = run_quiet(["cmake", "-S", str(PROJECT_DIR), "-B", str(BUILD_DIR)], env=build_env())
-    if completed.returncode == 0:
-        return ok("CMake configure succeeded", str(BUILD_DIR.relative_to(REPO_ROOT)))
+    DOCTOR_TMP_DIR.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="doctor-cmake-", dir=str(DOCTOR_TMP_DIR)) as probe_dir:
+            completed = run_quiet(["cmake", "-S", str(PROJECT_DIR), "-B", probe_dir], env=build_env())
+            if completed.returncode == 0:
+                return ok("CMake configure succeeded", "temporary probe build passed")
+    except OSError as exc:
+        return err("CMake configure failed", str(exc))
 
     detail = completed.stderr.strip() or completed.stdout.strip() or "Unknown configure failure."
-    return err("CMake configure failed", detail.splitlines()[-1])
+    return err("CMake configure failed", summarize_output(detail))
 
 
 def print_results(results: List[CheckResult]) -> None:
