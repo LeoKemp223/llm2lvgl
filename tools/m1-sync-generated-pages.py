@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -40,25 +41,33 @@ def write_file(path: Path, content: str) -> bool:
     return True
 
 
+def discover_task(task_path: Path) -> Optional[dict]:
+    task = load_json(task_path)
+    if task.get("compat", {}).get("legacy_page_flow_task") is not None:
+        return None
+
+    output_c = (task_path.parent / task["generation"]["output_c"]).resolve()
+    output_h = (task_path.parent / task["generation"]["output_h"]).resolve()
+    if not output_c.exists() or not output_h.exists():
+        return None
+
+    return {
+        "task_path": task_path.resolve(),
+        "task": task,
+        "output_c": output_c,
+        "output_h": output_h,
+    }
+
+
 def discover_tasks(tasks_root: Path) -> list:
     tasks = []
     if not tasks_root.exists():
         return tasks
 
     for task_path in sorted(tasks_root.glob("*/task.json")):
-        task = load_json(task_path)
-        if task.get("compat", {}).get("legacy_page_flow_task") is not None:
-            continue
-        output_c = (task_path.parent / task["generation"]["output_c"]).resolve()
-        output_h = (task_path.parent / task["generation"]["output_h"]).resolve()
-        if not output_c.exists() or not output_h.exists():
-            continue
-        tasks.append({
-            "task_path": task_path.resolve(),
-            "task": task,
-            "output_c": output_c,
-            "output_h": output_h,
-        })
+        item = discover_task(task_path.resolve())
+        if item is not None:
+            tasks.append(item)
 
     return tasks
 
@@ -145,13 +154,18 @@ def render_cmake(tasks: list) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Discover generated task pages and emit M1 registry/CMake bridge files.")
     parser.add_argument("--tasks-root", default=str(REPO_ROOT / "workspace" / "tasks"), help="Directory containing task subdirectories")
+    parser.add_argument("--task-json", help="Optional single task.json to isolate registry/source generation to one page")
     parser.add_argument("--registry-c", required=True, help="Path to write generated_page_registry.c")
     parser.add_argument("--registry-h", required=True, help="Path to write generated_page_registry.h")
     parser.add_argument("--cmake-out", required=True, help="Path to write generated_page_sources.cmake")
     args = parser.parse_args()
 
-    tasks_root = Path(args.tasks_root).resolve()
-    tasks = unique_tasks(discover_tasks(tasks_root))
+    if args.task_json:
+        task_item = discover_task(Path(args.task_json).resolve())
+        tasks = unique_tasks([] if task_item is None else [task_item])
+    else:
+        tasks_root = Path(args.tasks_root).resolve()
+        tasks = unique_tasks(discover_tasks(tasks_root))
 
     write_file(Path(args.registry_h).resolve(), render_header())
     write_file(Path(args.registry_c).resolve(), render_registry_source(tasks))

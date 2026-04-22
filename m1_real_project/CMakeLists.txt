@@ -15,6 +15,7 @@ set(LVGL_DIR "${REPO_ROOT}/lv_port_linux_test/lvgl")
 set(M1_GENERATED_REGISTRY_C "${CMAKE_BINARY_DIR}/generated_page_registry.c")
 set(M1_GENERATED_REGISTRY_H "${CMAKE_BINARY_DIR}/generated_page_registry.h")
 set(M1_GENERATED_SOURCES_CMAKE "${CMAKE_BINARY_DIR}/generated_page_sources.cmake")
+set(M1_TASK_JSON "" CACHE FILEPATH "Optional task.json for isolated single-page builds")
 
 set(LV_CONF_DEFAULTS_PATH "${CMAKE_CURRENT_LIST_DIR}/lv_conf.defaults")
 set(LV_BUILD_CONF_PATH "${CMAKE_BINARY_DIR}/lv_conf.h" CACHE PATH "Path to generated lv_conf.h" FORCE)
@@ -36,16 +37,29 @@ if(NOT config_result EQUAL 0)
   message(FATAL_ERROR "Failed to generate lv_conf.h: ${config_output}")
 endif()
 
-execute_process(
-  COMMAND
-    ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
-    --tasks-root ${REPO_ROOT}/workspace/tasks
-    --registry-c ${M1_GENERATED_REGISTRY_C}
-    --registry-h ${M1_GENERATED_REGISTRY_H}
-    --cmake-out ${M1_GENERATED_SOURCES_CMAKE}
-  RESULT_VARIABLE generated_pages_result
-  OUTPUT_VARIABLE generated_pages_output
-  ERROR_VARIABLE generated_pages_output)
+if(M1_TASK_JSON)
+  execute_process(
+    COMMAND
+      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
+      --task-json ${M1_TASK_JSON}
+      --registry-c ${M1_GENERATED_REGISTRY_C}
+      --registry-h ${M1_GENERATED_REGISTRY_H}
+      --cmake-out ${M1_GENERATED_SOURCES_CMAKE}
+    RESULT_VARIABLE generated_pages_result
+    OUTPUT_VARIABLE generated_pages_output
+    ERROR_VARIABLE generated_pages_output)
+else()
+  execute_process(
+    COMMAND
+      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
+      --tasks-root ${REPO_ROOT}/workspace/tasks
+      --registry-c ${M1_GENERATED_REGISTRY_C}
+      --registry-h ${M1_GENERATED_REGISTRY_H}
+      --cmake-out ${M1_GENERATED_SOURCES_CMAKE}
+    RESULT_VARIABLE generated_pages_result
+    OUTPUT_VARIABLE generated_pages_output
+    ERROR_VARIABLE generated_pages_output)
+endif()
 
 if(NOT generated_pages_result EQUAL 0)
   message(FATAL_ERROR "Failed to sync generated pages: ${generated_pages_output}")

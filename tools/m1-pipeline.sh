@@ -40,16 +40,20 @@ Commands:
                  Run the bundled demo task end-to-end and write artifacts under workspace/tasks/demo_v1/
   init <task-dir> [--page-id ID] [--page-name NAME] [--profile PATH]
                  Create a task workspace and seed task.json
+  draft-html <task.json>
+                 Draft HTML from image input for image-based tasks
   generate <task.json>
-                 Generate LVGL page code from task/profile/HTML input
+                 Generate LVGL page code from task/profile input
   render-ref <task.json>
                  Render input HTML into the task reference image
-  sync
-                 Scan workspace tasks and emit generated-page bridge files for the M1 build
+  sync [task.json]
+                 Emit generated-page bridge files for all tasks, or only the specified task
   lint <task.json>
                  Run portability lint on generated or mapped source files
+  refine <task.json>
+                 Run automatic screenshot-driven source refinement until pass/max_iterations
   run <task.json>
-                 Run portability lint, then execute the workspace task bridge
+                 Run portability lint, execute the workspace task bridge, then refine on validation failure
   export <task.json>
                  Export generated page files into a portable bundle
   fetch <url> <task.json>
@@ -80,6 +84,14 @@ case "${cmd}" in
         shift
         python3 "${SCRIPT_DIR}/m1-task-init.py" "$@"
         ;;
+    draft-html)
+        task_json="${2:-}"
+        if [[ -z "${task_json}" ]]; then
+            usage
+            exit 1
+        fi
+        python3 "${SCRIPT_DIR}/m1-image-to-html.py" --task "${task_json}"
+        ;;
     generate)
         task_json="${2:-}"
         if [[ -z "${task_json}" ]]; then
@@ -97,12 +109,34 @@ case "${cmd}" in
         python3 "${SCRIPT_DIR}/m1-render-html-ref.py" --task "${task_json}"
         ;;
     sync)
-        mkdir -p "${SCRIPT_DIR}/../m1_real_project/build"
-        python3 "${SCRIPT_DIR}/m1-sync-generated-pages.py" \
-            --tasks-root "${SCRIPT_DIR}/../workspace/tasks" \
-            --registry-c "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.c" \
-            --registry-h "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.h" \
-            --cmake-out "${SCRIPT_DIR}/../m1_real_project/build/generated_page_sources.cmake"
+        task_json="${2:-}"
+        if [[ -n "${task_json}" ]]; then
+            build_dir="$(python3 -c '
+import json
+import re
+import sys
+from pathlib import Path
+
+task_path = Path(sys.argv[1]).resolve()
+task = json.loads(task_path.read_text(encoding="utf-8"))
+task_key = task.get("task_id") or task_path.parent.name or task["page_id"]
+task_key = re.sub(r"[^a-z0-9]+", "-", task_key.strip().lower()).strip("-") or "task"
+print((Path(sys.argv[2]).resolve() / task_key).as_posix())
+' "${task_json}" "${SCRIPT_DIR}/../m1_real_project/build")"
+            mkdir -p "${build_dir}"
+            python3 "${SCRIPT_DIR}/m1-sync-generated-pages.py" \
+                --task-json "${task_json}" \
+                --registry-c "${build_dir}/generated_page_registry.c" \
+                --registry-h "${build_dir}/generated_page_registry.h" \
+                --cmake-out "${build_dir}/generated_page_sources.cmake"
+        else
+            mkdir -p "${SCRIPT_DIR}/../m1_real_project/build"
+            python3 "${SCRIPT_DIR}/m1-sync-generated-pages.py" \
+                --tasks-root "${SCRIPT_DIR}/../workspace/tasks" \
+                --registry-c "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.c" \
+                --registry-h "${SCRIPT_DIR}/../m1_real_project/build/generated_page_registry.h" \
+                --cmake-out "${SCRIPT_DIR}/../m1_real_project/build/generated_page_sources.cmake"
+        fi
         ;;
     lint)
         task_json="${2:-}"
@@ -111,6 +145,14 @@ case "${cmd}" in
             exit 1
         fi
         python3 "${SCRIPT_DIR}/m1-portability-lint.py" --task "${task_json}"
+        ;;
+    refine)
+        task_json="${2:-}"
+        if [[ -z "${task_json}" ]]; then
+            usage
+            exit 1
+        fi
+        python3 "${SCRIPT_DIR}/m1-refine-page.py" --task "${task_json}"
         ;;
     run)
         task_json="${2:-}"
@@ -136,7 +178,17 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
         fi
 
         python3 "${SCRIPT_DIR}/m1-portability-lint.py" --task "${task_json}"
+
+        set +e
         python3 "${SCRIPT_DIR}/m1-task-run.py" --task "${task_json}"
+        run_status=$?
+        set -e
+
+        if [[ "${run_status}" -eq 2 ]]; then
+            python3 "${SCRIPT_DIR}/m1-refine-page.py" --task "${task_json}"
+        elif [[ "${run_status}" -ne 0 ]]; then
+            exit "${run_status}"
+        fi
         ;;
     export)
         task_json="${2:-}"
