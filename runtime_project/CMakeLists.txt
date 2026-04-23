@@ -45,7 +45,7 @@ endif()
 if(LVGL_TASK_JSON)
   execute_process(
     COMMAND
-      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
+      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/sync-generated-pages.py
       --task-json ${LVGL_TASK_JSON}
       --registry-c ${LVGL_GENERATED_REGISTRY_C}
       --registry-h ${LVGL_GENERATED_REGISTRY_H}
@@ -56,7 +56,7 @@ if(LVGL_TASK_JSON)
 else()
   execute_process(
     COMMAND
-      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/m1-sync-generated-pages.py
+      ${Python3_EXECUTABLE} ${REPO_ROOT}/tools/sync-generated-pages.py
       --tasks-root ${REPO_ROOT}/workspace/tasks
       --registry-c ${LVGL_GENERATED_REGISTRY_C}
       --registry-h ${LVGL_GENERATED_REGISTRY_H}

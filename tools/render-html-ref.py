@@ -39,14 +39,31 @@ def detect_browser() -> tuple:
     if wkhtmltoimage:
         return ("wkhtmltoimage", wkhtmltoimage)
 
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: F401
+        return ("playwright", "playwright")
+    except ImportError:
+        pass
+
     return ("", "")
+
+
+def render_with_playwright(html_path: Path, output_path: Path, width: int, height: int) -> None:
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page(viewport={"width": width, "height": height})
+        page.goto(file_url(html_path), wait_until="networkidle")
+        page.screenshot(path=str(output_path), full_page=False)
+        browser.close()
 
 
 def missing_renderer_message(task_path: Path, output_path: Path) -> str:
     return (
         "HTML reference rendering is required for this task "
         f"(`{task_path}` has `reference.render_from_html=true`), but no supported renderer is installed.\n"
-        "Install one of: chromium, chromium-browser, google-chrome, google-chrome-stable, wkhtmltoimage.\n"
+        "Install one of: chromium, chromium-browser, google-chrome, google-chrome-stable, wkhtmltoimage,\n"
+        "or `pip install playwright && playwright install chromium`.\n"
         "Or provide the reference image manually at "
         f"`{output_path}` and set `reference.render_from_html` to `false` in task.json."
     )
@@ -107,6 +124,8 @@ def main() -> int:
 
     if kind == "chromium":
         render_with_chromium(binary, html_path, output_path, width, height)
+    elif kind == "playwright":
+        render_with_playwright(html_path, output_path, width, height)
     else:
         render_with_wkhtmltoimage(binary, html_path, output_path, width, height)
 

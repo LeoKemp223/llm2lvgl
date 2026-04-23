@@ -23,7 +23,7 @@ for task_json in "${TASKS_ROOT}"/*/task.json; do
     task_id="$(basename "$(dirname "${task_json}")")"
     echo "--- Running: ${task_id} ---"
 
-    if ! "${SCRIPT_DIR}/m1-pipeline.sh" run "${task_json}"; then
+    if ! "${SCRIPT_DIR}/pipeline.sh" run "${task_json}"; then
         echo "FAIL: ${task_id} (pipeline error)"
         fail_count=$((fail_count + 1))
         failed_tasks+=("${task_id}")

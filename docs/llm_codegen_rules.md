@@ -1,5 +1,20 @@
 # LLM Codegen Rules
 
+Target: LVGL 9.x (v9.6). Use ONLY the LVGL 9.x API — do NOT use deprecated LVGL 8.x patterns.
+
+## Key LVGL 9.x API Changes (vs 8.x)
+
+- `lv_obj_clear_flag()` → renamed to `lv_obj_remove_flag()`
+- `lv_obj_set_style_pad_gap()` → removed; use `lv_obj_set_style_pad_row()` / `lv_obj_set_style_pad_column()`
+- `lv_btn_create()` → removed; use `lv_obj_create()` and style it as a button
+- `lv_img_create()` → renamed to `lv_image_create()`
+- `lv_img_set_src()` → renamed to `lv_image_set_src()`
+- `lv_list_add_btn()` → renamed to `lv_list_add_button()`
+- `lv_obj_set_style_text_align()` → use `lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, 0)`
+- `lv_disp_*` → renamed to `lv_display_*`
+- `lv_indev_*` → renamed to `lv_indev_*` (mostly same, but check signatures)
+- `LV_ALIGN_OUT_*` → removed; use `lv_obj_align_to()` with `LV_ALIGN_OUT_*` replaced by manual positioning
+
 These rules define what generated LVGL page code is allowed to do.
 
 ## Output Contract
@@ -36,6 +51,18 @@ Do not generate:
 - absolute filesystem paths such as `/usr/share/...` or `/home/...`
 - hardcoded desktop font paths
 - direct assumptions about `1280x800` unless the active profile says so
+
+## LVGL API Pitfalls
+
+Common mistakes that cause compilation errors — avoid these:
+
+- `LV_OPA_*` only has multiples of 10: `LV_OPA_0`, `LV_OPA_10`, `LV_OPA_20`, ..., `LV_OPA_100`, plus `LV_OPA_TRANSP`, `LV_OPA_COVER`. Values like `LV_OPA_8`, `LV_OPA_15`, `LV_OPA_25` do NOT exist. Use the nearest valid value or a raw integer (0–255).
+- `lv_color_hex()` takes a `uint32_t`, not a string. Correct: `lv_color_hex(0xFF0000)`.
+- `lv_color_t` has NO `.full` member in LVGL 9.x. To compare colors, use `lv_color_eq(a, b)`. To check if a color is black, use `lv_color_eq(c, lv_color_black())`. Never write `color.full`.
+- `lv_obj_set_style_text_font()` requires a `const lv_font_t *`. Use `ui_font_get(size)` — never reference `lv_font_montserrat_*` directly.
+- `LV_SIZE_CONTENT` is valid for width/height but not for position APIs.
+- `lv_obj_set_style_bg_opa()` expects `lv_opa_t` (0–255 or `LV_OPA_*` macro).
+- `lv_label_set_text()` copies the string — no need to keep the buffer alive, but never pass NULL.
 
 ## Font Rules
 

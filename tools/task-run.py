@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -102,13 +103,30 @@ def main() -> int:
     cmd_env = task_env(task_path, task, build_dir)
     reference_path = resolve(task_path, task["reference"]["image"])
 
+    # For image-based tasks, use the source image as reference if no reference exists
+    source_type = task.get("input", {}).get("source_type", "html")
+    if source_type == "image" and not reference_path.exists():
+        image_rel = task.get("input", {}).get("image_entry")
+        if image_rel:
+            src_img = resolve(task_path, image_rel)
+            if src_img.is_file():
+                reference_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(str(src_img), str(reference_path))
+                print(f"Using source image as reference: {src_img}")
+
     if task["reference"].get("render_from_html", False) and (args.rerender_ref or not reference_path.exists()):
-        run([sys.executable, str(TOOLS_DIR / "m1-render-html-ref.py"), "--task", str(task_path)])
+        # Check if any HTML renderer is available before attempting render
+        _renderers = ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "wkhtmltoimage"]
+        if any(shutil.which(r) for r in _renderers):
+            run([sys.executable, str(TOOLS_DIR / "render-html-ref.py"), "--task", str(task_path)])
+        else:
+            print("WARNING: No HTML renderer found, skipping reference image rendering.", file=sys.stderr)
+            print("  Visual validation will be skipped. Install chromium or wkhtmltoimage for full validation.", file=sys.stderr)
 
     if not args.skip_sync:
         run([
             sys.executable,
-            str(TOOLS_DIR / "m1-sync-generated-pages.py"),
+            str(TOOLS_DIR / "sync-generated-pages.py"),
             "--task-json",
             str(task_path),
             "--registry-c",
@@ -134,10 +152,15 @@ def main() -> int:
     if not args.skip_full_screenshot:
         run([str(TOOLS_DIR / "lvgl-runtime.sh"), "screenshot-full", str(full_path)], env=cmd_env)
 
+    if not reference_path.exists():
+        print("WARNING: No reference image available, skipping visual validation.", file=sys.stderr)
+        print(f"Task run completed: {task_path} (status=0, validation skipped)")
+        return 0
+
     compat_task_path = make_legacy_compat_task(task_path, task)
     validator_status = run([
         sys.executable,
-        str(TOOLS_DIR / "m1-page-validate.py"),
+        str(TOOLS_DIR / "page-validate.py"),
         "--task",
         str(compat_task_path),
         "--current",

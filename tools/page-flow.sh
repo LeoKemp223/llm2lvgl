@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PROJECT_DIR="${ROOT_DIR}/runtime_project"
 TASKS_DIR="${PROJECT_DIR}/workflow/tasks"
-VALIDATOR="${SCRIPT_DIR}/m1-page-validate.py"
+VALIDATOR="${SCRIPT_DIR}/page-validate.py"
 RUNTIME_RUNNER="${SCRIPT_DIR}/lvgl-runtime.sh"
 
 CURRENT_ITERATION=""

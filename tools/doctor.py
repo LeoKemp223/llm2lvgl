@@ -136,13 +136,18 @@ def check_pkg_config() -> List[CheckResult]:
     return results
 
 
-def check_optional_html_renderer() -> CheckResult:
+def check_html_renderer() -> CheckResult:
     for candidate in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "wkhtmltoimage"):
         if has_command(candidate):
             return ok("HTML reference renderer is available", f"Detected `{candidate}`")
-    return warn(
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: F401
+        return ok("HTML reference renderer is available", "Detected playwright")
+    except ImportError:
+        pass
+    return err(
         "HTML reference renderer is unavailable",
-        "Install chromium/chromium-browser/google-chrome or wkhtmltoimage to use `render-ref` on new tasks.",
+        "Install one of: chromium / google-chrome / wkhtmltoimage, or `pip install playwright && playwright install chromium`.",
     )
 
 
@@ -165,7 +170,7 @@ def check_repo_files() -> List[CheckResult]:
             LV_PORT_DIR / "CMakeLists.txt",
             LVGL_DIR / "CMakeLists.txt",
             LVGL_DIR / "scripts" / "generate_lv_conf.py",
-            REPO_ROOT / "tools" / "m1-sync-generated-pages.py",
+            REPO_ROOT / "tools" / "sync-generated-pages.py",
         )
         if not path.is_file()
     ]
@@ -215,13 +220,13 @@ def main() -> int:
     results.extend(check_commands())
     results.extend(check_python_modules())
     results.extend(check_pkg_config())
-    results.append(check_optional_html_renderer())
+    results.append(check_html_renderer())
     results.extend(check_repo_files())
 
     core_ready = all(
         item.level != "ERR"
         for item in results
-        if item.title not in {"HTML reference renderer is unavailable", "Python module `Pillow` is missing"}
+        if item.title not in {"Python module `Pillow` is missing"}
     )
     results.append(check_cmake_configure(core_ready))
 

@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+export PYTHONUNBUFFERED=1
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 task_legacy_ref() {
@@ -64,6 +66,8 @@ Commands:
                  Remove the build directory
   validate <task.json>
                  Run screenshot + diff validation only (no generate/build)
+  webui [--host HOST] [--port PORT]
+                 Launch the Web UI (requires: pip install -r requirements-webui.txt)
 EOF
 }
 
@@ -71,12 +75,12 @@ cmd="${1:-}"
 
 case "${cmd}" in
     doctor)
-        python3 "${SCRIPT_DIR}/m1-doctor.py"
+        python3 "${SCRIPT_DIR}/doctor.py"
         ;;
     quickstart)
         demo_task="${SCRIPT_DIR}/../workspace/tasks/demo_v1/task.json"
-        python3 "${SCRIPT_DIR}/m1-doctor.py"
-        python3 "${SCRIPT_DIR}/m1-task-run.py" --task "${demo_task}"
+        python3 "${SCRIPT_DIR}/doctor.py"
+        python3 "${SCRIPT_DIR}/task-run.py" --task "${demo_task}"
         echo ""
         echo "Quickstart finished."
         echo "Report: ${SCRIPT_DIR}/../workspace/tasks/demo_v1/artifacts/report.json"
@@ -84,7 +88,7 @@ case "${cmd}" in
         ;;
     init)
         shift
-        python3 "${SCRIPT_DIR}/m1-task-init.py" "$@"
+        python3 "${SCRIPT_DIR}/task-init.py" "$@"
         ;;
     draft-html)
         task_json="${2:-}"
@@ -92,7 +96,7 @@ case "${cmd}" in
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-image-to-html.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/image-to-html.py" --task "${task_json}"
         ;;
     generate)
         task_json="${2:-}"
@@ -100,7 +104,7 @@ case "${cmd}" in
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-generate-page.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/generate-page.py" --task "${task_json}"
         ;;
     render-ref)
         task_json="${2:-}"
@@ -108,7 +112,7 @@ case "${cmd}" in
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-render-html-ref.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/render-html-ref.py" --task "${task_json}"
         ;;
     sync)
         task_json="${2:-}"
@@ -146,7 +150,7 @@ print((Path(sys.argv[2]).resolve() / task_key).as_posix())
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-portability-lint.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/portability-lint.py" --task "${task_json}"
         ;;
     refine)
         task_json="${2:-}"
@@ -154,7 +158,7 @@ print((Path(sys.argv[2]).resolve() / task_key).as_posix())
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-refine-page.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/refine-page.py" --task "${task_json}"
         ;;
     run)
         task_json="${2:-}"
@@ -164,7 +168,7 @@ print((Path(sys.argv[2]).resolve() / task_key).as_posix())
         fi
 
         if [[ "$(task_is_legacy_compat "${task_json}")" == "false" ]]; then
-            python3 "${SCRIPT_DIR}/m1-generate-page.py" --task "${task_json}"
+            python3 "${SCRIPT_DIR}/generate-page.py" --task "${task_json}"
 
             # Verify generated output exists
             output_c=$(python3 -c "
@@ -179,17 +183,28 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
             fi
         fi
 
-        python3 "${SCRIPT_DIR}/m1-portability-lint.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/portability-lint.py" --task "${task_json}"
+
+        # Render reference image from HTML input (needed for validation)
+        python3 "${SCRIPT_DIR}/render-html-ref.py" --task "${task_json}"
 
         set +e
-        python3 "${SCRIPT_DIR}/m1-task-run.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/task-run.py" --task "${task_json}"
         run_status=$?
         set -e
 
         if [[ "${run_status}" -eq 2 ]]; then
-            python3 "${SCRIPT_DIR}/m1-refine-page.py" --task "${task_json}"
+            python3 "${SCRIPT_DIR}/refine-page.py" --task "${task_json}"
         elif [[ "${run_status}" -ne 0 ]]; then
-            exit "${run_status}"
+            # Build or other failure — attempt refine which handles build errors internally
+            echo "Task run failed (exit ${run_status}), attempting refine..."
+            set +e
+            python3 "${SCRIPT_DIR}/refine-page.py" --task "${task_json}"
+            refine_status=$?
+            set -e
+            if [[ "${refine_status}" -ne 0 ]]; then
+                exit "${refine_status}"
+            fi
         fi
         ;;
     export)
@@ -198,7 +213,7 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-export-page.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/export-page.py" --task "${task_json}"
         ;;
     fetch)
         url="${2:-}"
@@ -223,7 +238,11 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
             usage
             exit 1
         fi
-        python3 "${SCRIPT_DIR}/m1-task-run.py" --task "${task_json}"
+        python3 "${SCRIPT_DIR}/task-run.py" --task "${task_json}"
+        ;;
+    webui)
+        shift
+        python3 "${SCRIPT_DIR}/webui.py" "$@"
         ;;
     *)
         usage
