@@ -41,6 +41,7 @@ Rules for search-replace blocks:
 - Focus on fixing the largest visual differences first (brightest red areas in the heatmap)
 - Common fixes: adjust positions, sizes, colors, padding, margins, font sizes, border radius
 - If elements are missing, add them. If elements are misplaced, reposition them.
+- Use native LVGL widgets for interactive elements: `lv_button_create()` for buttons, `lv_switch_create()` for toggles, `lv_slider_create()` for sliders, `lv_bar_create()` for progress bars, `lv_checkbox_create()` for checkboxes, `lv_dropdown_create()` for selects. Do NOT replace native widgets with `lv_obj_create()` + manual styling.
 
 ## LVGL API Pitfalls
 

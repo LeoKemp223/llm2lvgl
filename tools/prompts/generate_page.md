@@ -71,6 +71,53 @@ lv_obj_t * my_dashboard_page_get_content_root(void)
 - Use `lv_obj_set_pos()` for absolute positioning when needed
 - Map HTML colors to `lv_color_hex()` calls
 - Map font sizes to `ui_font_get()` calls
-- For switches, sliders, checkboxes, dropdowns — use the corresponding LVGL widgets
 - Keep all code in a single file, no external dependencies beyond lvgl.h and ui_font.h
 - Output ONLY the C code inside a ```c code fence
+
+## Native Widget Policy (CRITICAL)
+
+ALWAYS use LVGL native widgets for interactive UI elements. NEVER simulate buttons, switches, sliders, etc. with `lv_obj_create()` + manual styling.
+
+Mapping:
+
+| HTML | LVGL |
+|---|---|
+| `<button>` | `lv_button_create(parent)` — style with `LV_PART_MAIN` |
+| checkbox | `lv_checkbox_create(parent)` — use `lv_checkbox_set_text()` |
+| toggle switch | `lv_switch_create(parent)` — checked state via `lv_obj_add_state(sw, LV_STATE_CHECKED)` |
+| slider / range | `lv_slider_create(parent)` — style knob via `LV_PART_KNOB`, track via `LV_PART_INDICATOR` |
+| progress bar | `lv_bar_create(parent)` — set value with `lv_bar_set_value()` |
+| `<select>` / dropdown | `lv_dropdown_create(parent)` — set options with `lv_dropdown_set_options()` |
+| text input | `lv_textarea_create(parent)` |
+| circular progress | `lv_arc_create(parent)` |
+
+Example — a styled button:
+```c
+lv_obj_t * btn = lv_button_create(parent);
+lv_obj_set_size(btn, 120, 48);
+lv_obj_set_style_bg_color(btn, lv_color_hex(0x4CAF50), 0);
+lv_obj_set_style_radius(btn, 8, 0);
+lv_obj_t * label = lv_label_create(btn);
+lv_label_set_text(label, "Submit");
+lv_obj_center(label);
+```
+
+Example — a styled switch:
+```c
+lv_obj_t * sw = lv_switch_create(parent);
+lv_obj_set_size(sw, 50, 26);
+lv_obj_add_state(sw, LV_STATE_CHECKED);
+lv_obj_set_style_bg_color(sw, lv_color_hex(0x4CAF50), LV_PART_INDICATOR | LV_STATE_CHECKED);
+```
+
+Example — a styled slider:
+```c
+lv_obj_t * slider = lv_slider_create(parent);
+lv_obj_set_width(slider, 200);
+lv_slider_set_range(slider, 0, 100);
+lv_slider_set_value(slider, 70, LV_ANIM_OFF);
+lv_obj_set_style_bg_color(slider, lv_color_hex(0x2196F3), LV_PART_INDICATOR);
+lv_obj_set_style_bg_color(slider, lv_color_hex(0x2196F3), LV_PART_KNOB);
+```
+
+Only use `lv_obj_create()` for non-interactive containers: panels, cards, layout wrappers, dividers.

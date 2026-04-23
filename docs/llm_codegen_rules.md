@@ -6,7 +6,7 @@ Target: LVGL 9.x (v9.6). Use ONLY the LVGL 9.x API — do NOT use deprecated LVG
 
 - `lv_obj_clear_flag()` → renamed to `lv_obj_remove_flag()`
 - `lv_obj_set_style_pad_gap()` → removed; use `lv_obj_set_style_pad_row()` / `lv_obj_set_style_pad_column()`
-- `lv_btn_create()` → removed; use `lv_obj_create()` and style it as a button
+- `lv_btn_create()` → renamed to `lv_button_create()`
 - `lv_img_create()` → renamed to `lv_image_create()`
 - `lv_img_set_src()` → renamed to `lv_image_set_src()`
 - `lv_list_add_btn()` → renamed to `lv_list_add_button()`
@@ -63,6 +63,26 @@ Common mistakes that cause compilation errors — avoid these:
 - `LV_SIZE_CONTENT` is valid for width/height but not for position APIs.
 - `lv_obj_set_style_bg_opa()` expects `lv_opa_t` (0–255 or `LV_OPA_*` macro).
 - `lv_label_set_text()` copies the string — no need to keep the buffer alive, but never pass NULL.
+
+## Widget Rules
+
+Always prefer LVGL native widgets over manually styled `lv_obj_create()`. Native widgets provide correct default behavior, accessibility, and state handling (pressed, focused, disabled).
+
+| HTML Element | LVGL Widget | Create Function |
+|---|---|---|
+| `<button>` | Button | `lv_button_create(parent)` |
+| `<input type="checkbox">` | Checkbox | `lv_checkbox_create(parent)` |
+| `<input type="range">`, slider | Slider | `lv_slider_create(parent)` |
+| toggle switch | Switch | `lv_switch_create(parent)` |
+| `<select>` | Dropdown | `lv_dropdown_create(parent)` |
+| progress bar | Bar | `lv_bar_create(parent)` |
+| `<textarea>`, `<input type="text">` | Textarea | `lv_textarea_create(parent)` |
+| circular gauge / progress | Arc | `lv_arc_create(parent)` |
+| scroll picker | Roller | `lv_roller_create(parent)` |
+
+Do NOT simulate these controls with `lv_obj_create()` + manual styling. Use the native widget and customize its appearance via style properties and parts (`LV_PART_MAIN`, `LV_PART_INDICATOR`, `LV_PART_KNOB`, etc.).
+
+Only use `lv_obj_create()` for containers, panels, cards, and layout wrappers that have no interactive behavior.
 
 ## Font Rules
 
