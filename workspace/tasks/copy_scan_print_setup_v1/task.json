@@ -49,7 +49,7 @@
     "stop_on_portability_error": true
   },
   "compat": {
-    "legacy_page_flow_task": null
+    "legacy_page_flow_task": true
   },
   "notes": [
     "Manual LVGL implementation based on the provided compact printer launcher screenshot.",

@@ -90,6 +90,9 @@ add_executable(lvgl_runtime_demo
   src/main.c
   src/page_registry.c
   src/token_page.c
+  src/stitch_smart_home_panel_page.c
+  src/image_converter_page.c
+  src/copy_scan_print_setup_page.c
   src/ui_font.c
 )
 

@@ -6,6 +6,9 @@
 #include "generated_page_registry.h"
 #include "home_page.h"
 #include "token_page.h"
+#include "stitch_smart_home_panel_page.h"
+#include "image_converter_page.h"
+#include "copy_scan_print_setup_page.h"
 
 static const lvgl_page_descriptor_t g_pages[] = {
     {
@@ -19,6 +22,24 @@ static const lvgl_page_descriptor_t g_pages[] = {
         .name = "Token Landing Page",
         .create = token_page_create,
         .get_content_root = token_page_get_content_root,
+    },
+    {
+        .id = "stitch_smart_home_panel",
+        .name = "Smart Home Panel",
+        .create = stitch_smart_home_panel_page_create,
+        .get_content_root = stitch_smart_home_panel_page_get_content_root,
+    },
+    {
+        .id = "image_converter",
+        .name = "Image Converter",
+        .create = image_converter_page_create,
+        .get_content_root = image_converter_page_get_content_root,
+    },
+    {
+        .id = "copy_scan_print_setup",
+        .name = "Copy Scan Print Setup",
+        .create = copy_scan_print_setup_page_create,
+        .get_content_root = copy_scan_print_setup_page_get_content_root,
     },
 };
 

@@ -48,7 +48,7 @@
     "stop_on_portability_error": true
   },
   "compat": {
-    "legacy_page_flow_task": null
+    "legacy_page_flow_task": true
   },
   "notes": [
     "Fill input/index.html with the target page HTML.",

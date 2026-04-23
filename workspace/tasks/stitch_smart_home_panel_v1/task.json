@@ -32,7 +32,7 @@
   },
   "validation": {
     "pixel_diff_threshold": 16,
-    "max_diff_ratio": 0.20,
+    "max_diff_ratio": 0.2,
     "max_mean_abs_diff": 24.0,
     "require_size_match": true
   },
@@ -49,7 +49,7 @@
     "stop_on_portability_error": true
   },
   "compat": {
-    "legacy_page_flow_task": null
+    "legacy_page_flow_task": true
   },
   "notes": [
     "Handwritten LVGL implementation based on the stitch smart home panel reference.",

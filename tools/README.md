@@ -15,10 +15,14 @@
 - Portability lint: [`/home/leo/work/open-git/llm2lvgl/tools/portability-lint.py`](/home/leo/work/open-git/llm2lvgl/tools/portability-lint.py)
 - Workspace task runner: [`/home/leo/work/open-git/llm2lvgl/tools/task-run.py`](/home/leo/work/open-git/llm2lvgl/tools/task-run.py)
 - Export helper: [`/home/leo/work/open-git/llm2lvgl/tools/export-page.py`](/home/leo/work/open-git/llm2lvgl/tools/export-page.py)
+- LLM-driven visual refine: [`/home/leo/work/open-git/llm2lvgl/tools/refine-page.py`](/home/leo/work/open-git/llm2lvgl/tools/refine-page.py)
+- LLM API client: [`/home/leo/work/open-git/llm2lvgl/tools/llm_client.py`](/home/leo/work/open-git/llm2lvgl/tools/llm_client.py)
+- Web UI server: [`/home/leo/work/open-git/llm2lvgl/tools/webui.py`](/home/leo/work/open-git/llm2lvgl/tools/webui.py)
 
 ## Compatibility Notes
 
 - Legacy `m1-*` script names are still present and continue to work.
+- `tools/refine-page.py` uses search-replace blocks by default: the LLM only outputs changed fragments instead of the full file, reducing output tokens by 80-95%. Falls back to full-file mode when the LLM outputs a ```c code fence instead.
 - `tools/lvgl-runtime.sh` and `tools/doctor.py` automatically wire the repo-local `SDL2_image` fallback when it is present.
 - For workspace task pages, `tools/lvgl-runtime.sh` supports `LVGL_PAGE=<page_id>` and auto-infers:
   - matching `workspace/tasks/*/task.json`

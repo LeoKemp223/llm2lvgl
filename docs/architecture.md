@@ -134,8 +134,6 @@ Current implementation status:
 
 Pending:
 
-- LLM-driven generation path beyond the current rule-based generator
-- stronger end-to-end iteration loop for fixing generation failures automatically
 - hardening around sync/build race conditions and duplicate page handling
 
 ## Runtime Integration
@@ -164,10 +162,12 @@ but they are implemented as a bridge into the existing runtime rather than as a 
 - portability lint before simulator validation
 - generated-page auto-sync into the runtime build
 - portable bundle export
+- LLM-driven code generation via OpenAI-compatible API (`tools/generate-page.py`, `tools/llm_client.py`)
+- LLM-driven visual refinement with search-replace patching (`tools/refine-page.py`)
+- Web UI for browser-based task management (`tools/webui.py`, `tools/web/`)
 
 ### In Progress / Remaining Gaps
 
-- the default generator is still rule-based and intentionally limited
 - validation is still screenshot-driven, even when the reference comes from HTML
 - the runtime still depends on the legacy executable bridge instead of a dedicated task-native runner
 - exported bundles are portable page artifacts, not a full firmware integration package
@@ -181,3 +181,40 @@ but they are implemented as a bridge into the existing runtime rather than as a 
 - current task validation is still reference-image driven, not semantic-layout driven
 
 These are known and should be treated as migration work rather than blockers for the new task layer.
+
+## LLM Refine Loop
+
+After initial code generation and validation, `tools/refine-page.py` runs an iterative
+visual refinement loop:
+
+1. Read the current validation report (`diff_ratio`, `mean_abs_diff`) and the three-panel diff image
+2. Send the current C source + diff image to the LLM with a vision prompt
+3. The LLM responds with **search-replace blocks** (not the full file), reducing output tokens by 80-95%
+4. Apply the search-replace patches to the source, rebuild, re-validate
+5. Accept the change only if metrics improve; otherwise rollback
+6. Repeat until validation passes or `max_iterations` is reached
+
+Search-replace format:
+
+```
+<<<SEARCH
+original lines (exact match)
+===
+replacement lines
+>>>
+```
+
+Fallback: if the LLM outputs a full ```c code fence instead of search-replace blocks,
+the system falls back to full-file replacement mode for compatibility.
+
+Build errors during refinement are also handled via the same search-replace mechanism:
+the compiler output is sent to the LLM, which returns targeted fixes.
+
+## Web UI
+
+`tools/webui.py` launches a Flask-based browser interface (`tools/web/`) that wraps the
+CLI pipeline with drag-and-drop upload, real-time SSE log streaming, step progress
+indicators, a stop button for cancelling running tasks, and result visualization.
+
+The Web UI stores LLM settings (API key, model, base URL) in `workspace/.llm_settings.json`,
+which is also read by `tools/llm_client.py` for CLI usage.

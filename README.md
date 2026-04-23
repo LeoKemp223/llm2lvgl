@@ -89,6 +89,30 @@ tools/pipeline.sh quickstart
 
 如果这里已经跑通，你再开始创建自己的 task。
 
+## Web UI
+
+除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
+
+### 启动
+
+```bash
+pip install flask
+python3 tools/webui.py
+```
+
+默认监听 `http://localhost:5000`。
+
+### 功能
+
+- 上传 HTML 文件（支持多文件：HTML + CSS/JS/图片）、截图或输入 URL
+- 选择 Board Profile 和任务名称
+- 一键运行完整流水线（init → generate → lint → build → validate → refine → export）
+- 实时日志流和步骤进度指示
+- 运行中可随时点击 Stop 按钮终止任务
+- 查看三栏对比图（参考 | 当前 | 热力图）和校验报告
+- 下载可移植 LVGL 代码包
+- LLM 设置（API Key、模型、Base URL）在界面内配置并持久化
+
 ## 从 HTML 或图片生成自己的 LVGL 页面
 
 整个流程围绕 **任务 (task)** 组织。每个任务对应一个页面，包含输入 HTML、生成的 C 代码、校验产物和导出包。
@@ -335,8 +359,8 @@ lvgl_agent/
 
 ### 分层职责
 
-- **页面层** (`runtime_project/src/`) — 每个页面实现 `xxx_page_create()` 和 `xxx_page_get_content_root()`
-- **注册层** (`page_registry.c`) — 页面 id → 函数映射，workspace 任务通过 `sync-generated-pages.py` 自动注册
+- **页面层** (`runtime_project/src/`) — 内置示例页面，实现 `xxx_page_create()` 和 `xxx_page_get_content_root()`
+- **注册层** (`page_registry.c`) — 内置页面 id → 函数映射，workspace 用户任务通过 `sync-generated-pages.py` 自动注册
 - **运行层** (`main.c`) — LVGL + SDL 初始化，通过 `LVGL_PAGE` 环境变量选择页面，支持 viewport 和整页两种截图模式
 - **校验层** (`page-validate.py`) — PIL 像素级 diff，输出三栏对比图和结构化 JSON 报告
 - **构建层** (`CMakeLists.txt`) — 从 `lv_conf.defaults` 生成配置，按 task 输出独立 `build/<task_id>/lvgl_runtime_demo`
@@ -345,8 +369,10 @@ lvgl_agent/
 
 ```text
 lvgl_runtime_demo (executable)
-  ├── src/main.c, page_registry.c, home_page.c, token_page.c
-  ├── generated_page_registry.c (workspace 任务自动生成)
+  ├── src/main.c, page_registry.c, home_page.c, token_page.c,
+  │   stitch_smart_home_panel_page.c, image_converter_page.c,
+  │   copy_scan_print_setup_page.c  (内置示例页面)
+  ├── generated_page_registry.c (workspace 用户任务自动生成)
   └── lvgl (static library) → SDL2, SDL2_image, FreeType, lodepng
 ```
 
@@ -365,6 +391,10 @@ lvgl_runtime_demo (executable)
 | `tools/task-init.py` | 任务目录初始化 |
 | `tools/task-run.py` | 任务执行器 |
 | `tools/export-page.py` | 页面导出打包 |
+| `tools/refine-page.py` | LLM 驱动的视觉迭代优化（search-replace 模式） |
+| `tools/llm_client.py` | OpenAI 兼容 API 客户端（streaming、search-replace 解析） |
+| `tools/webui.py` | Web UI 启动入口 |
+| `tools/web/server.py` | Web UI Flask 后端 |
 | `tools/lvgl-runtime.sh` | 主工程编译/运行/截图（底层） |
 | `tools/page-flow.sh` | 页面级校验闭环（底层） |
 
@@ -385,12 +415,19 @@ tools/lvgl-runtime.sh list-pages
 # GUI 运行（需要桌面环境）
 LVGL_PAGE=token tools/lvgl-runtime.sh run
 
+# 运行其他内置示例页面
+LVGL_PAGE=stitch_smart_home_panel tools/lvgl-runtime.sh run
+LVGL_PAGE=image_converter tools/lvgl-runtime.sh run
+LVGL_PAGE=copy_scan_print_setup tools/lvgl-runtime.sh run
+
 # 单独截图
 LVGL_PAGE=token tools/lvgl-runtime.sh screenshot output.png
 
 # 单独校验
 tools/page-flow.sh validate token
 ```
+
+注意：`token` 等 legacy 页面（定义在 `runtime_project/src/` 中）不在 workspace 里，因此会走全量编译路径，所有 workspace task 的生成代码也会一起编译。如果某个 workspace task 的代码有编译错误，会导致 legacy 页面也无法编译。遇到这种情况可以先修复或删除出错的 workspace task 生成代码。
 
 对于 workspace task 页面，`tools/lvgl-runtime.sh` 现在支持仅通过 `LVGL_PAGE` 自动推导运行上下文：
 
@@ -418,7 +455,7 @@ LVGL_PAGE=stitch_smart_home_panel tools/lvgl-runtime.sh screenshot output.png
 
 | 文档 | 说明 |
 |------|------|
-| [docs/architecture.md](docs/architecture.md) | 系统架构与执行阶段 |
+| [docs/architecture.md](docs/architecture.md) | 系统架构、执行阶段、Refine 循环与 Web UI |
 | [docs/llm_codegen_rules.md](docs/llm_codegen_rules.md) | LLM 代码生成约束规则 |
 | [docs/board_profiles.md](docs/board_profiles.md) | Board profile 配置说明 |
 | [docs/lvgl-sdl-cross-machine-deployment.md](docs/lvgl-sdl-cross-machine-deployment.md) | 跨机器部署指南 |
