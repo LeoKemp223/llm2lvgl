@@ -1,4 +1,4 @@
-# LVGL Agent Workspace
+# LLM驱动的全自动化LVGL代码生成器
 
 这是一个面向 LLM 驱动，基于 LVGL + SDL 的自动化 UI 工作仓库，用于把设计稿、HTML 页面或图像生成成嵌入式 LVGL 代码，并通过模拟器做可视化预览和回归验证。
 
