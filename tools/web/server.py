@@ -206,9 +206,56 @@ def create_app() -> Flask:
         if not profile:
             return jsonify(error="profile is required"), 400
 
-        profile_path = PROFILES_DIR / profile
-        if not profile_path.is_file():
-            return jsonify(error=f"profile not found: {profile}"), 400
+        # Handle custom profile with user-specified resolution
+        if profile == "__custom__":
+            custom_name = request.form.get("custom_name", "").strip()
+            custom_width = request.form.get("custom_width", "").strip()
+            custom_height = request.form.get("custom_height", "").strip()
+            try:
+                cw = int(custom_width)
+                ch = int(custom_height)
+                assert cw >= 100 and ch >= 100
+            except (ValueError, AssertionError):
+                return jsonify(error="自定义分辨率无效（宽高均不小于 100）"), 400
+            slug = _slugify(custom_name or f"{cw}x{ch}")
+            profile_fname = f"custom_{slug}.json"
+            profile_path = PROFILES_DIR / profile_fname
+            if not profile_path.is_file():
+                profile_data = {
+                    "version": 1,
+                    "id": slug,
+                    "name": custom_name or f"Custom {cw}x{ch}",
+                    "screen": {
+                        "width": cw,
+                        "height": ch,
+                        "color_depth": 32,
+                        "dpi": 160,
+                    },
+                    "fonts": {
+                        "allow_freetype": True,
+                        "builtin_fonts": ["lv_font_montserrat_14", "lv_font_montserrat_24"],
+                        "default_font": "lv_font_montserrat_14",
+                    },
+                    "assets": {
+                        "allow_filesystem": True,
+                        "allow_png": True,
+                        "allow_jpg": True,
+                        "max_asset_kb": 2048,
+                    },
+                    "constraints": {
+                        "allow_sdl_only_api": False,
+                        "allow_snapshot_api_in_export": False,
+                    },
+                }
+                PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+                profile_path.write_text(
+                    json.dumps(profile_data, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+        else:
+            profile_path = PROFILES_DIR / profile
+            if not profile_path.is_file():
+                return jsonify(error=f"profile not found: {profile}"), 400
 
         task_id = _slugify(name) if name else f"web_{uuid.uuid4().hex[:8]}"
         # Ensure unique

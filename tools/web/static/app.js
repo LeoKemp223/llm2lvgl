@@ -9,6 +9,7 @@
 
   let currentTaskId = null;
   let evtSource = null;
+  let profilesData = [];
 
   // -- Init -----------------------------------------------------------------
 
@@ -25,14 +26,34 @@
 
   async function loadProfiles() {
     const res = await fetch("/api/profiles");
-    const profiles = await res.json();
+    profilesData = await res.json();
     const sel = $("#profile-select");
     sel.innerHTML = "";
-    for (const p of profiles) {
+    for (const p of profilesData) {
       const opt = document.createElement("option");
       opt.value = p.file;
       opt.textContent = `${p.name} (${p.screen.width}x${p.screen.height})`;
       sel.appendChild(opt);
+    }
+    const customOpt = document.createElement("option");
+    customOpt.value = "__custom__";
+    customOpt.textContent = "自定义平台...";
+    sel.appendChild(customOpt);
+    sel.addEventListener("change", onProfileChange);
+  }
+
+  function onProfileChange() {
+    const sel = $("#profile-select");
+    const custom = $("#custom-profile");
+    if (sel.value === "__custom__") {
+      custom.style.display = "block";
+    } else {
+      custom.style.display = "none";
+      const p = profilesData.find(x => x.file === sel.value);
+      if (p) {
+        $("#custom-width").value = p.screen.width;
+        $("#custom-height").value = p.screen.height;
+      }
     }
   }
 
@@ -149,7 +170,23 @@
     const profile = $("#profile-select").value;
     const name = $("#task-name").value.trim();
     const fd = new FormData();
-    fd.append("profile", profile);
+
+    if (profile === "__custom__") {
+      const cw = parseInt($("#custom-width").value);
+      const ch = parseInt($("#custom-height").value);
+      const cname = $("#custom-profile-name").value.trim();
+      if (!cw || !ch || cw < 100 || ch < 100) {
+        alert("请输入有效的分辨率（宽高均不小于 100）");
+        btn.disabled = false;
+        return;
+      }
+      fd.append("profile", "__custom__");
+      fd.append("custom_name", cname || `${cw}x${ch}`);
+      fd.append("custom_width", cw);
+      fd.append("custom_height", ch);
+    } else {
+      fd.append("profile", profile);
+    }
     if (name) fd.append("name", name);
 
     if (activeTab === "html") {

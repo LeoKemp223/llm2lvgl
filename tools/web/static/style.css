@@ -69,6 +69,7 @@ label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9r
 input[type="text"],
 input[type="password"],
 input[type="url"],
+input[type="number"],
 select {
   width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
   border-radius: 8px; font-size: 0.95rem; transition: border-color 0.2s; background-color: #fff;
@@ -168,3 +169,8 @@ figcaption { font-size: 0.8rem; text-align: center; margin-top: 0.5rem; color: v
 }
 .task-list li:hover { background-color: #f8fafc; }
 .task-list .status { font-size: 0.7rem; margin-left: 8px; }
+
+/* Custom profile */
+.custom-profile { background: #f1f5f9; border-radius: 8px; padding: 12px; margin-top: 8px; }
+.profile-resolution { display: flex; align-items: flex-end; gap: 8px; }
+.resolution-x { font-size: 1.2rem; color: var(--text-muted); padding-bottom: 10px; font-weight: 600; }

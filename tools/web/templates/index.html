@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>llm2lvgl Web UI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
 </head>
 <body>
 <div class="container">
@@ -69,8 +69,25 @@
   </details>
 
   <div class="form-group">
-    <label for="profile-select">目标平台</label>
+    <label>目标平台</label>
     <select id="profile-select"></select>
+    <div id="custom-profile" class="custom-profile" style="display:none">
+      <div class="form-group" style="margin-top:10px">
+        <label for="custom-profile-name">平台名称</label>
+        <input type="text" id="custom-profile-name" placeholder="例如: Raspberry Pi 7inch">
+      </div>
+      <div class="profile-resolution">
+        <div class="form-group" style="flex:1">
+          <label for="custom-width">宽度 (px)</label>
+          <input type="number" id="custom-width" min="100" max="4096" placeholder="1024">
+        </div>
+        <span class="resolution-x">&times;</span>
+        <div class="form-group" style="flex:1">
+          <label for="custom-height">高度 (px)</label>
+          <input type="number" id="custom-height" min="100" max="4096" placeholder="600">
+        </div>
+      </div>
+    </div>
   </div>
   <div class="form-group">
     <label for="task-name">任务名称（可选）</label>
@@ -116,6 +133,6 @@
 <!-- Lightbox -->
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt="放大查看"></div>
 
-<script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=3"></script>
 </body>
 </html>
