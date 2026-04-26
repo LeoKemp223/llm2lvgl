@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>llm2lvgl Web UI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
 </head>
 <body>
 <div class="container">
@@ -12,85 +12,82 @@
 
   <!-- Input section -->
   <div class="tabs">
-    <button class="tab-btn active" data-tab="html">Upload HTML</button>
-    <button class="tab-btn" data-tab="image">Upload Image</button>
-    <button class="tab-btn" data-tab="url">Enter URL</button>
+    <button class="tab-btn active" data-tab="html">上传 HTML</button>
+    <button class="tab-btn" data-tab="image">上传图片</button>
+    <button class="tab-btn" data-tab="url">输入网址</button>
   </div>
 
   <div id="tab-html" class="tab-content active">
     <div class="drop-zone" id="html-drop-zone">
-      <div>Drop HTML file(s) here or click to select<br><small>Supports single HTML or HTML + CSS/JS/images (multi-select)</small></div>
+      <div>拖拽 HTML 文件到此处，或点击选择<br><small>支持单个 HTML 或 HTML + CSS/JS/图片（可多选）</small></div>
       <input type="file" id="html-file" accept=".html,.htm,.css,.js,.png,.jpg,.jpeg,.gif,.svg,.webp,.woff,.woff2,.ttf,.eot" multiple>
     </div>
     <div class="file-list" id="html-file-list"></div>
   </div>
   <div id="tab-image" class="tab-content">
     <div class="drop-zone" id="image-drop-zone">
-      <div>Drop image(s) here or click to select<br><small>Main screenshot + optional icon/asset images</small></div>
+      <div>拖拽图片到此处，或点击选择<br><small>主截图 + 可选的图标/资源图片</small></div>
       <input type="file" id="image-file" accept="image/*" multiple>
     </div>
     <div class="file-list" id="image-file-list"></div>
   </div>
   <div id="tab-url" class="tab-content">
     <div class="form-group">
-      <label for="url-input">Page URL</label>
+      <label for="url-input">页面网址</label>
       <input type="url" id="url-input" placeholder="https://example.com/page">
     </div>
   </div>
 
   <!-- Settings -->
   <details class="settings" id="settings-panel" open>
-    <summary>LLM Settings</summary>
+    <summary>LLM 设置</summary>
     <div class="settings-body">
       <div class="form-group">
         <label for="setting-api-key">API Key</label>
         <input type="password" id="setting-api-key" placeholder="sk-...">
       </div>
       <div class="form-group">
-        <label for="setting-model">Model</label>
-        <select id="setting-model">
-          <optgroup label="OpenAI">
-            <option value="gpt-4o">GPT-4o</option>
-            <option value="gpt-4o-mini">GPT-4o Mini</option>
-            <option value="gpt-4.1">GPT-4.1</option>
-            <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
-            <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
-          </optgroup>
-          <optgroup label="DeepSeek">
-            <option value="deepseek-chat">DeepSeek Chat (V3)</option>
-            <option value="deepseek-reasoner">DeepSeek Reasoner (R1)</option>
-          </optgroup>
-        </select>
+        <label for="setting-model">模型</label>
+        <input type="text" id="setting-model" list="model-candidates" placeholder="例如 gpt-4o、deepseek-chat，或输入任意模型名称">
+        <datalist id="model-candidates">
+          <option value="gpt-4o">
+          <option value="gpt-4o-mini">
+          <option value="gpt-4.1">
+          <option value="gpt-4.1-mini">
+          <option value="gpt-4.1-nano">
+          <option value="deepseek-chat">
+          <option value="deepseek-reasoner">
+        </datalist>
       </div>
       <div class="form-group">
-        <label for="setting-base-url">Base URL (optional)</label>
+        <label for="setting-base-url">Base URL（可选）</label>
         <input type="url" id="setting-base-url" placeholder="https://api.openai.com/v1">
       </div>
-      <button class="btn btn-sm" id="save-settings-btn">Save</button>
+      <button class="btn btn-sm" id="save-settings-btn">保存</button>
       <span class="settings-msg" id="settings-msg"></span>
     </div>
   </details>
 
   <div class="form-group">
-    <label for="profile-select">Board Profile</label>
+    <label for="profile-select">目标平台</label>
     <select id="profile-select"></select>
   </div>
   <div class="form-group">
-    <label for="task-name">Task Name (optional)</label>
+    <label for="task-name">任务名称（可选）</label>
     <input type="text" id="task-name" placeholder="my_dashboard">
   </div>
-  <button class="btn" id="start-btn">Start</button>
-  <button class="btn btn-stop" id="stop-btn" style="display:none">Stop</button>
+  <button class="btn" id="start-btn">开始</button>
+  <button class="btn btn-stop" id="stop-btn" style="display:none">停止</button>
 
   <!-- Progress section -->
   <div class="steps">
-    <span class="step" data-step="init">init</span>
-    <span class="step" data-step="generate">generate</span>
-    <span class="step" data-step="lint">lint</span>
-    <span class="step" data-step="build">build</span>
-    <span class="step" data-step="validate">validate</span>
-    <span class="step" data-step="refine">refine</span>
-    <span class="step" data-step="export">export</span>
+    <span class="step" data-step="init">初始化</span>
+    <span class="step" data-step="generate">生成</span>
+    <span class="step" data-step="lint">检查</span>
+    <span class="step" data-step="build">构建</span>
+    <span class="step" data-step="validate">验证</span>
+    <span class="step" data-step="refine">精调</span>
+    <span class="step" data-step="export">导出</span>
   </div>
   <div class="log-box"></div>
 
@@ -98,23 +95,27 @@
   <div class="results">
     <div class="report-summary" id="report-summary"></div>
     <div class="image-compare">
-      <figure><img id="img-ref" alt="Reference"><figcaption>Reference / Current</figcaption></figure>
-      <figure><img id="img-actual" alt="Full screenshot"><figcaption>Full Screenshot</figcaption></figure>
-      <figure><img id="img-diff" alt="Diff"><figcaption>Diff Heatmap</figcaption></figure>
+      <figure><img id="img-ref" alt="参考图"><figcaption>参考图 / 当前图</figcaption></figure>
+      <figure><img id="img-actual" alt="完整截图"><figcaption>完整截图</figcaption></figure>
+      <figure><img id="img-diff" alt="差异热力图"><figcaption>差异热力图</figcaption></figure>
     </div>
-    <button class="btn" id="download-btn">Download LVGL Bundle</button>
+    <button class="btn" id="download-btn">下载 LVGL 交付包</button>
     <div class="code-preview">
-      <button class="code-toggle">Show Generated Code</button>
+      <button class="code-toggle">查看生成的代码</button>
       <pre class="code-block" id="code-block"></pre>
     </div>
   </div>
 
   <!-- History -->
   <div class="history">
-    <h3>History</h3>
+    <h3>历史记录</h3>
     <ul class="task-list" id="task-list"></ul>
   </div>
 </div>
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox"><img id="lightbox-img" alt="放大查看"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}?v=2"></script>
 </body>
 </html>

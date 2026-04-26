@@ -43,16 +43,7 @@
       const res = await fetch("/api/settings");
       const data = await res.json();
       $("#setting-api-key").value = data.api_key || "";
-      const modelSel = $("#setting-model");
-      const savedModel = data.model || "";
-      // If saved model isn't in the dropdown, add it dynamically
-      if (savedModel && !modelSel.querySelector(`option[value="${savedModel}"]`)) {
-        const opt = document.createElement("option");
-        opt.value = savedModel;
-        opt.textContent = savedModel;
-        modelSel.prepend(opt);
-      }
-      modelSel.value = savedModel;
+      $("#setting-model").value = data.model || "";
       $("#setting-base-url").value = data.base_url || "";
     } catch (e) {
       // ignore – settings are optional
@@ -73,15 +64,15 @@
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        msg.textContent = "Saved";
+        msg.textContent = "已保存";
         msg.style.color = "var(--success)";
       } else {
         const err = await res.json();
-        msg.textContent = err.error || "Failed";
+        msg.textContent = err.error || "保存失败";
         msg.style.color = "var(--error)";
       }
     } catch (e) {
-      msg.textContent = "Error: " + e.message;
+      msg.textContent = "错误: " + e.message;
       msg.style.color = "var(--error)";
     }
     setTimeout(() => { msg.textContent = ""; }, 3000);
@@ -102,7 +93,6 @@
 
   // -- Drop zones -----------------------------------------------------------
 
-  // Collected files (DataTransfer doesn't persist across events reliably)
   let htmlFiles = [];
   let imageFiles = [];
 
@@ -166,14 +156,12 @@
       fd.append("source_type", "html");
       if (!htmlFiles.length) {
         const f = $("#html-file").files[0];
-        if (!f) { alert("Please select an HTML file"); btn.disabled = false; return; }
+        if (!f) { alert("请选择 HTML 文件"); btn.disabled = false; return; }
         htmlFiles = [f];
       }
-      // First .html/.htm file is the main entry
       const mainHtml = htmlFiles.find(f => /\.html?$/i.test(f.name));
-      if (!mainHtml) { alert("No HTML file found in selection"); btn.disabled = false; return; }
+      if (!mainHtml) { alert("所选文件中未找到 HTML 文件"); btn.disabled = false; return; }
       fd.append("file", mainHtml);
-      // Additional assets
       for (const f of htmlFiles) {
         if (f !== mainHtml) fd.append("assets", f);
       }
@@ -181,43 +169,37 @@
       fd.append("source_type", "image");
       if (!imageFiles.length) {
         const f = $("#image-file").files[0];
-        if (!f) { alert("Please select an image"); btn.disabled = false; return; }
+        if (!f) { alert("请选择图片"); btn.disabled = false; return; }
         imageFiles = [f];
       }
-      // First image is the main screenshot
       fd.append("file", imageFiles[0]);
-      // Additional images as assets
       for (let i = 1; i < imageFiles.length; i++) {
         fd.append("assets", imageFiles[i]);
       }
     } else {
       fd.append("source_type", "url");
       const url = $("#url-input").value.trim();
-      if (!url) { alert("Please enter a URL"); btn.disabled = false; return; }
+      if (!url) { alert("请输入网址"); btn.disabled = false; return; }
       fd.append("url", url);
     }
 
     try {
-      // Create task
       let res = await fetch("/api/tasks", { method: "POST", body: fd });
       let data = await res.json();
-      if (!res.ok) { alert(data.error || "Failed to create task"); btn.disabled = false; return; }
+      if (!res.ok) { alert(data.error || "创建任务失败"); btn.disabled = false; return; }
       currentTaskId = data.task_id;
 
-      // Reset UI
       resetProgress();
       $(".log-box").classList.add("visible");
       $(".results").classList.remove("visible");
 
-      // Run pipeline
       res = await fetch(`/api/tasks/${currentTaskId}/run`, { method: "POST" });
       data = await res.json();
-      if (!res.ok) { alert(data.error || "Failed to start"); btn.disabled = false; return; }
+      if (!res.ok) { alert(data.error || "启动失败"); btn.disabled = false; return; }
 
-      // Connect SSE
       connectSSE(currentTaskId);
     } catch (e) {
-      alert("Error: " + e.message);
+      alert("错误: " + e.message);
       btn.disabled = false;
       $("#stop-btn").style.display = "none";
     }
@@ -230,7 +212,7 @@
     try {
       await fetch(`/api/tasks/${currentTaskId}/stop`, { method: "POST" });
     } catch (e) {
-      // ignore – SSE done event will handle UI reset
+      // ignore
     }
   }
 
@@ -310,7 +292,6 @@
     const results = $(".results");
     results.classList.add("visible");
 
-    // Images
     const setImg = (sel, name) => {
       const img = $(sel);
       if (data.artifacts[name]) {
@@ -324,25 +305,22 @@
     setImg("#img-actual", "full.png");
     setImg("#img-diff", "diff.png");
 
-    // Report
     if (data.artifacts["report.json"]) {
       const rr = await fetch(`/api/tasks/${taskId}/artifacts/report.json`);
       const report = await rr.json();
       const summary = $("#report-summary");
       const passed = report.pass === true || report.passed === true;
       summary.innerHTML = `
-        <span class="${passed ? "pass" : "fail"}">${passed ? "PASS" : "FAIL"}</span>
-        &nbsp; diff_ratio: ${(report.diff_ratio ?? 0).toFixed(4)}
-        &nbsp; mean_abs_diff: ${(report.mean_abs_diff ?? 0).toFixed(2)}
+        <span class="${passed ? "pass" : "fail"}">${passed ? "通过" : "未通过"}</span>
+        &nbsp; 差异率: ${(report.diff_ratio ?? 0).toFixed(4)}
+        &nbsp; 平均绝对差: ${(report.mean_abs_diff ?? 0).toFixed(2)}
       `;
     }
 
-    // Download button
     $("#download-btn").onclick = () => {
       window.location = `/api/tasks/${taskId}/export`;
     };
 
-    // Code preview
     const codeRes = await fetch(`/api/tasks/${taskId}/code`);
     const codeData = await codeRes.json();
     const codeBlock = $("#code-block");
@@ -382,6 +360,22 @@
         $("#code-block").classList.toggle("visible");
       });
     }
+
+    // Lightbox: click result images to zoom in
+    const lightbox = document.getElementById("lightbox");
+    const lightboxImg = document.getElementById("lightbox-img");
+    document.addEventListener("click", (e) => {
+      if (e.target.matches(".image-compare img")) {
+        lightboxImg.src = e.target.src;
+        lightbox.classList.add("open");
+      } else if (e.target.matches(".lightbox") || e.target.matches(".lightbox img")) {
+        lightbox.classList.remove("open");
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") lightbox.classList.remove("open");
+    });
+
     init();
   });
 })();

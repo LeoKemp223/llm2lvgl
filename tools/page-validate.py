@@ -142,11 +142,20 @@ def main() -> int:
         json.dump(report, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
 
-    print(f"Validation report written to {report_path}")
-    print(f"Pass: {report['pass']}")
-    print(f"Completion met: {report['completion_met']}")
-    print(f"Diff ratio: {diff_ratio:.6f}")
-    print(f"Mean abs diff: {mean_abs_diff:.3f}")
+    print(f"验证报告已写入 {report_path}")
+    print(f"结果: {'通过' if report['pass'] else '未通过'}")
+    print(f"完成状态: {'已满足' if report['completion_met'] else '未满足'}")
+    print(f"diff_ratio: {diff_ratio:.6f}  (阈值: {task['validation']['max_diff_ratio']})")
+    print(f"mean_abs_diff: {mean_abs_diff:.3f}  (阈值: {task['validation']['max_mean_abs_diff']})")
+    if not report["pass"]:
+        reasons = []
+        if not (size_match or not bool(task["validation"]["require_size_match"])):
+            reasons.append(f"尺寸不匹配 (参考: {reference.size}, 当前: {original_current_size})")
+        if diff_ratio > float(task["validation"]["max_diff_ratio"]):
+            reasons.append(f"diff_ratio 超标 ({diff_ratio:.6f} > {task['validation']['max_diff_ratio']})")
+        if mean_abs_diff > float(task["validation"]["max_mean_abs_diff"]):
+            reasons.append(f"mean_abs_diff 超标 ({mean_abs_diff:.3f} > {task['validation']['max_mean_abs_diff']})")
+        print(f"未通过原因: {'; '.join(reasons)}")
     return 0 if report["completion_met"] else 2
 
 

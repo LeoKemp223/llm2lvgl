@@ -194,37 +194,37 @@ def main() -> int:
         status, build_output = run_task(task_path, fast=False)
         if status not in (0, 2):
             # Build failed — try to fix compilation errors via LLM
-            print(f"Initial build failed (exit {status}), attempting to fix build errors...")
+            print(f"初始构建失败 (退出码 {status})，尝试修复构建错误...")
             for fix_attempt in range(1, max_iterations + 1):
                 baseline_code = source_path.read_text(encoding="utf-8")
                 messages = build_build_error_prompt(baseline_code, build_output)
-                print(f"Build-fix iteration {fix_attempt}: calling LLM...")
+                print(f"构建修复 第 {fix_attempt} 轮: 调用 LLM...")
                 response = llm_client.chat(messages, max_tokens=4096)
                 blocks = llm_client.extract_search_replace_blocks(response)
                 if blocks:
                     try:
                         new_code = llm_client.apply_search_replace(baseline_code, blocks)
                     except ValueError as e:
-                        print(f"Build-fix iteration {fix_attempt}: search-replace failed: {e}")
+                        print(f"构建修复 第 {fix_attempt} 轮: search-replace 失败: {e}")
                         continue
                 else:
                     new_code = llm_client.extract_code_block(response, "c")
                 source_path.write_text(new_code, encoding="utf-8")
                 status, build_output = run_task(task_path, fast=True)
                 if status in (0, 2):
-                    print(f"Build-fix iteration {fix_attempt}: build succeeded")
+                    print(f"构建修复 第 {fix_attempt} 轮: 构建成功")
                     break
-                print(f"Build-fix iteration {fix_attempt}: still failing")
+                print(f"构建修复 第 {fix_attempt} 轮: 仍然失败")
             if status not in (0, 2):
-                print("Could not fix build errors after retries")
+                print("重试后仍无法修复构建错误")
                 return status
 
     # Guard: if report.json still doesn't exist after build succeeded,
     # validation was skipped (e.g. missing reference image). Nothing to refine.
     if not report_path.is_file():
-        print(f"No validation report found at {report_path} — "
-              "validation was likely skipped (missing reference image?). "
-              "Cannot refine without a baseline report.")
+        print(f"未找到验证报告 {report_path} — "
+              "验证可能被跳过（缺少参考图片？）。"
+              "没有基准报告无法进行精调。")
         return 0 if diff_path.is_file() else 1
 
     log: Dict[str, object] = {
@@ -240,7 +240,7 @@ def main() -> int:
     for iteration in range(1, max_iterations + 1):
         report = load_json(report_path)
         if bool(report.get("pass")):
-            print(f"Refine skipped: validation already passes for {task_path}")
+            print(f"精调跳过: 验证已通过 {task_path}")
             log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             return 0
 
@@ -265,7 +265,7 @@ def main() -> int:
         }
 
         # Call LLM with vision
-        print(f"Refine iteration {iteration}: calling LLM...")
+        print(f"精调 第 {iteration} 轮: 调用 LLM...")
         messages = build_refine_prompt(
             baseline_code, report, diff_path,
         )
@@ -275,13 +275,13 @@ def main() -> int:
             try:
                 new_code = llm_client.apply_search_replace(baseline_code, blocks)
             except ValueError as e:
-                print(f"Refine iteration {iteration}: search-replace failed: {e}, rolled back")
+                print(f"精调 第 {iteration} 轮: search-replace 失败: {e}，已回滚")
                 iteration_log["result"] = "search_replace_failed"
                 log["iterations"].append(iteration_log)
                 log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 consecutive_no_improve += 1
                 if consecutive_no_improve >= max_no_improve:
-                    print(f"Refine iteration {iteration}: {max_no_improve} consecutive failures, stopping early")
+                    print(f"精调 第 {iteration} 轮: 连续 {max_no_improve} 次失败，提前停止")
                     break
                 continue
         else:
@@ -292,7 +292,7 @@ def main() -> int:
         status, build_err = run_task(task_path, fast=True)
         if status not in (0, 2):
             # Build failed — try to fix via LLM before rolling back
-            print(f"Refine iteration {iteration}: build failed, attempting fix...")
+            print(f"精调 第 {iteration} 轮: 构建失败，尝试修复...")
             for fix_try in range(1, max_iterations + 1):
                 fix_msgs = build_build_error_prompt(new_code, build_err)
                 fix_resp = llm_client.chat(fix_msgs, max_tokens=4096)
@@ -307,7 +307,7 @@ def main() -> int:
                 source_path.write_text(new_code, encoding="utf-8")
                 status, build_err = run_task(task_path, fast=True)
                 if status in (0, 2):
-                    print(f"Refine iteration {iteration}: build fix succeeded on try {fix_try}")
+                    print(f"精调 第 {iteration} 轮: 构建修复成功 (第 {fix_try} 次尝试)")
                     break
             if status not in (0, 2):
                 # Still failing — rollback code and artifacts without rebuilding
@@ -319,9 +319,9 @@ def main() -> int:
                 log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
                 consecutive_no_improve += 1
                 if consecutive_no_improve >= max_no_improve:
-                    print(f"Refine iteration {iteration}: {max_no_improve} consecutive failures, stopping early")
+                    print(f"精调 第 {iteration} 轮: 连续 {max_no_improve} 次失败，提前停止")
                     break
-                print(f"Refine iteration {iteration}: could not fix build, rolled back")
+                print(f"精调 第 {iteration} 轮: 无法修复构建，已回滚")
                 continue
 
         new_report = load_json(report_path)
@@ -341,9 +341,9 @@ def main() -> int:
             log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             consecutive_no_improve += 1
             if consecutive_no_improve >= max_no_improve:
-                print(f"Refine iteration {iteration}: {max_no_improve} consecutive non-improvements, stopping early")
+                print(f"精调 第 {iteration} 轮: 连续 {max_no_improve} 次未改善，提前停止")
                 break
-            print(f"Refine iteration {iteration}: no improvement, rolled back")
+            print(f"精调 第 {iteration} 轮: 无改善，已回滚")
             continue
 
         consecutive_no_improve = 0
@@ -353,10 +353,10 @@ def main() -> int:
         log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
         print(
-            f"Refine iteration {iteration}: "
+            f"精调 第 {iteration} 轮: "
             f"diff_ratio={new_report['diff_ratio']:.6f}, "
             f"mean_abs_diff={new_report['mean_abs_diff']:.3f}, "
-            f"pass={new_report['pass']}"
+            f"通过={'是' if new_report['pass'] else '否'}"
         )
 
         if bool(new_report.get("pass")):
@@ -364,7 +364,7 @@ def main() -> int:
 
     final_report = load_json(report_path)
     print(
-        "Refine reached max_iterations without passing: "
+        f"精调已达最大迭代次数 ({max_iterations}) 仍未通过: "
         f"diff_ratio={final_report['diff_ratio']:.6f}, "
         f"mean_abs_diff={final_report['mean_abs_diff']:.3f}"
     )

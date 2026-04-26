@@ -32,9 +32,11 @@ def build_task_payload(
     page_id: str,
     page_name: str,
     profile_path: Path,
+    profile_data: dict,
     source_type: str,
     image_entry: str,
 ) -> dict:
+    screen = profile_data.get("screen", {})
     return {
         "task_id": task_dir.name,
         "page_id": page_id,
@@ -49,11 +51,11 @@ def build_task_payload(
         "target": {
             "profile": relative_posix(task_dir, profile_path),
             "viewport": {
-                "width": 1280,
-                "height": 800,
+                "width": screen.get("width", 1280),
+                "height": screen.get("height", 800),
             },
-            "color_depth": 32,
-            "dpi": 160,
+            "color_depth": screen.get("color_depth", 32),
+            "dpi": screen.get("dpi", 160),
             "language": "zh-CN",
         },
         "generation": {
@@ -214,7 +216,7 @@ def main() -> int:
         suffix = image_source.suffix.lower() or ".png"
         image_entry = f"input/source{suffix}"
 
-    payload = build_task_payload(task_dir, page_id, page_name, profile_path, args.source_type, image_entry)
+    payload = build_task_payload(task_dir, page_id, page_name, profile_path, profile_data, args.source_type, image_entry)
     task_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     ensure_seed_files(task_dir, page_id, page_name, args.source_type)
 

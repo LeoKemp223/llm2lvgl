@@ -111,8 +111,19 @@ def main() -> int:
             src_img = resolve(task_path, image_rel)
             if src_img.is_file():
                 reference_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(str(src_img), str(reference_path))
-                print(f"Using source image as reference: {src_img}")
+                viewport = task.get("target", {}).get("viewport", {})
+                vw = viewport.get("width")
+                vh = viewport.get("height")
+                if vw and vh:
+                    from PIL import Image
+                    img = Image.open(str(src_img))
+                    if img.size != (vw, vh):
+                        print(f"将参考图从 {img.size} 缩放到 ({vw}, {vh})")
+                        img = img.resize((vw, vh), Image.LANCZOS)
+                    img.save(str(reference_path))
+                else:
+                    shutil.copy2(str(src_img), str(reference_path))
+                print(f"参考图已设置: {src_img}")
 
     if task["reference"].get("render_from_html", False) and (args.rerender_ref or not reference_path.exists()):
         # Check if any HTML renderer is available before attempting render
