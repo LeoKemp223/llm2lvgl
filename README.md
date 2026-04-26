@@ -35,7 +35,6 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
          导出可移植交付包 → 嵌入式固件项目
 ```
 
-
 ## 3 分钟上手
 
 第一次接触这个仓库，先不要自己建 task，先跑通内置 demo：
@@ -90,6 +89,8 @@ tools/pipeline.sh quickstart
 如果这里已经跑通，你再开始创建自己的 task。
 
 ## Web UI
+
+<img width="2160" height="1118" alt="PixPin_2026-04-26_22-44-35" src="https://github.com/user-attachments/assets/682ed3fb-7154-43cc-92ec-68649029b4e3" />
 
 除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
 
