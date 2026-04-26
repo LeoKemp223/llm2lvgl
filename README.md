@@ -32,9 +32,6 @@ HTML 页面设计                  Board Profile (分辨率/字体/约束)
          导出可移植交付包 → 嵌入式固件项目
 ```
 
-说明：
-- 文档和命令示例优先使用不带 `m1` 的公开名称
-- 旧的 `m1-*` 脚本名和 `M1_*` 环境变量仍然保留兼容
 
 ## 3 分钟上手
 
@@ -448,8 +445,6 @@ LVGL_PAGE=stitch_smart_home_panel tools/lvgl-runtime.sh screenshot output.png
 - `LVGL_VIEWPORT_WIDTH`
 - `LVGL_VIEWPORT_HEIGHT`
 
-兼容性说明：
-- 旧的 `M1_PAGE`、`M1_TASK_JSON`、`M1_BUILD_DIR`、`M1_VIEWPORT_WIDTH`、`M1_VIEWPORT_HEIGHT` 仍可继续使用
 
 ## 文档索引
 
