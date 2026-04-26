@@ -2,6 +2,9 @@
 
 这是一个面向 LLM 驱动，基于 LVGL + SDL 的自动化 UI 工作仓库，用于把设计稿、HTML 页面或图像生成成嵌入式 LVGL 代码，并通过模拟器做可视化预览和回归验证。
 
+<img width="1536" height="1024" alt="c117f1b5-d526-4a43-aa65-8082fe4e1efc" src="https://github.com/user-attachments/assets/0324339e-fe5e-4f3e-92c7-41c432db06aa" />
+
+
 ## 核心流程
 
 ```text
