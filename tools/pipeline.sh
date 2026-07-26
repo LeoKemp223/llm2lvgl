@@ -168,6 +168,18 @@ print((Path(sys.argv[2]).resolve() / task_key).as_posix())
         fi
 
         if [[ "$(task_is_legacy_compat "${task_json}")" == "false" ]]; then
+            if [[ "$(python3 -c '
+import json
+import sys
+from pathlib import Path
+task = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(task.get("input", {}).get("source_type", "html"))
+' "${task_json}")" == "image" ]]; then
+                python3 "${SCRIPT_DIR}/image-to-html.py" --task "${task_json}"
+                python3 "${SCRIPT_DIR}/asset-plan.py" --task "${task_json}"
+                python3 "${SCRIPT_DIR}/asset-extract.py" --task "${task_json}"
+            fi
+
             python3 "${SCRIPT_DIR}/generate-page.py" --task "${task_json}"
 
             # Verify generated output exists

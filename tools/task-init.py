@@ -67,7 +67,7 @@ def build_task_payload(
             "allow_filesystem_assets": False,
         },
         "reference": {
-            "image": image_entry if source_type == "image" else "reference/reference.png",
+            "image": "reference/reference.png",
             "render_from_html": source_type != "image",
         },
         "validation": {

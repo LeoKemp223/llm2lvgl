@@ -51,6 +51,66 @@ def create_diff_preview(reference: Image.Image, current: Image.Image, heatmap: I
     return canvas
 
 
+def foreground_bbox(image: Image.Image) -> list[int] | None:
+    rgb = image.convert("RGB")
+    width, height = rgb.size
+    px = rgb.load()
+    xs = []
+    ys = []
+    for y in range(height):
+        for x in range(width):
+            r, g, b = px[x, y]
+            if not (r > 238 and g > 238 and b > 238):
+                xs.append(x)
+                ys.append(y)
+    if not xs:
+        return None
+    return [min(xs), min(ys), max(xs) + 1, max(ys) + 1]
+
+
+def bbox_center(box: list[int] | None) -> list[float] | None:
+    if not box:
+        return None
+    return [(box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0]
+
+
+def bbox_area(box: list[int] | None) -> int:
+    if not box:
+        return 0
+    return max(0, box[2] - box[0]) * max(0, box[3] - box[1])
+
+
+def image_mean_rgb(image: Image.Image) -> list[float]:
+    stat = ImageStat.Stat(image.convert("RGB"))
+    return [round(float(v), 3) for v in stat.mean[:3]]
+
+
+def visual_diagnostics(reference: Image.Image, current: Image.Image) -> dict[str, Any]:
+    ref_box = foreground_bbox(reference)
+    cur_box = foreground_bbox(current)
+    ref_center = bbox_center(ref_box)
+    cur_center = bbox_center(cur_box)
+    offset = None
+    if ref_center and cur_center:
+        offset = [
+            round(cur_center[0] - ref_center[0], 3),
+            round(cur_center[1] - ref_center[1], 3),
+        ]
+
+    ref_area = bbox_area(ref_box)
+    cur_area = bbox_area(cur_box)
+    area_ratio = round(float(cur_area) / float(ref_area), 6) if ref_area else None
+
+    return {
+        "reference_foreground_bbox": ref_box,
+        "current_foreground_bbox": cur_box,
+        "foreground_center_offset": offset,
+        "foreground_area_ratio": area_ratio,
+        "reference_mean_rgb": image_mean_rgb(reference),
+        "current_mean_rgb": image_mean_rgb(current),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate an M1 page screenshot against a reference.")
     parser.add_argument("--task", required=True, help="Path to the task JSON file.")
@@ -117,6 +177,7 @@ def main() -> int:
         "diff_ratio": diff_ratio,
         "mean_abs_diff": mean_abs_diff,
         "diff_bbox": list(bbox) if bbox else None,
+        "visual_diagnostics": visual_diagnostics(reference, current),
         "thresholds": {
             "pixel_diff_threshold": task["validation"]["pixel_diff_threshold"],
             "max_diff_ratio": task["validation"]["max_diff_ratio"],

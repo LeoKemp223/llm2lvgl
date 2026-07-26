@@ -60,12 +60,147 @@ def _safe_task_id(task_id: str) -> str | None:
     return slug
 
 
+def _safe_upload_suffix(filename: str, fallback: str = ".png") -> str:
+    suffix = Path(filename or "").suffix.lower()
+    return suffix if suffix in {".png", ".jpg", ".jpeg", ".bmp", ".webp"} else fallback
+
+
 def _task_dir(task_id: str) -> Path:
     return TASKS_DIR / task_id
 
 
 def _task_json(task_id: str) -> Path:
     return _task_dir(task_id) / "task.json"
+
+
+def _task_artifacts(task_id: str) -> dict[str, bool]:
+    artifacts = {}
+    art_dir = _task_dir(task_id) / "artifacts"
+    for name in ("current.png", "full.png", "diff.png", "report.json", "run_state.json"):
+        artifacts[name] = (art_dir / name).is_file()
+    return artifacts
+
+
+def _profile_summary(task: dict) -> dict:
+    target = task.get("target", {})
+    profile_ref = target.get("profile", "")
+    profile_name = Path(profile_ref).name if profile_ref else ""
+    profile_path = (_task_dir(task.get("task_id", "")) / profile_ref).resolve() if profile_ref else None
+    label = Path(profile_name).stem if profile_name else ""
+
+    if profile_path and profile_path.is_file():
+        try:
+            data = json.loads(profile_path.read_text("utf-8"))
+            label = data.get("name") or data.get("id") or label
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return {
+        "file": profile_name,
+        "name": label,
+        "viewport": target.get("viewport", {}),
+        "color_depth": target.get("color_depth"),
+        "dpi": target.get("dpi"),
+    }
+
+
+def _run_state_path(task_id: str) -> Path:
+    return _task_dir(task_id) / "artifacts" / "run_state.json"
+
+
+def _public_run_state(run: dict) -> dict:
+    return {
+        "status": run.get("status", "idle"),
+        "step": run.get("step", ""),
+        "exit_code": run.get("exit_code"),
+        "started": run.get("started"),
+        "updated": time.time(),
+    }
+
+
+def _write_run_state(task_id: str, run: dict) -> None:
+    path = _run_state_path(task_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(_public_run_state(run), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _load_run_state(task_id: str) -> dict:
+    path = _run_state_path(task_id)
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _report_pass(task_id: str) -> bool | None:
+    report_path = _task_dir(task_id) / "artifacts" / "report.json"
+    if not report_path.is_file():
+        return None
+    try:
+        report = json.loads(report_path.read_text("utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    value = report.get("pass", report.get("passed"))
+    return bool(value) if value is not None else None
+
+
+def _reconcile_run_state(task_id: str) -> dict:
+    """Normalize stale in-memory state before exposing it to the UI."""
+    run = TASK_RUNS.get(task_id, {})
+    if not run:
+        saved = _load_run_state(task_id)
+        if saved:
+            return saved
+        artifacts = _task_artifacts(task_id)
+        if any(artifacts.values()):
+            passed = _report_pass(task_id)
+            if passed is not None:
+                inferred = {
+                    "status": "done" if passed else "failed",
+                    "log": [],
+                    "step": "export" if passed else "refine",
+                    "exit_code": 0 if passed else 2,
+                }
+                _write_run_state(task_id, inferred)
+                return inferred
+        return run
+
+    if run.get("status") != "running":
+        _write_run_state(task_id, run)
+        return run
+
+    proc = run.get("proc")
+    if proc is not None and proc.poll() is not None:
+        rc = proc.returncode
+        run["exit_code"] = rc
+        run["status"] = "done" if rc == 0 else "failed"
+        if not run.get("_reconciled"):
+            run["log"].append(f"--- process exited with status {rc} ---")
+            run["_reconciled"] = True
+        _write_run_state(task_id, run)
+        return run
+
+    # If the process object disappeared but artifacts exist, do not leave the
+    # dashboard spinning forever. This can happen after worker/thread loss.
+    artifacts = _task_artifacts(task_id)
+    if proc is None and any(artifacts.values()):
+        passed = _report_pass(task_id)
+        run["exit_code"] = 0 if passed else 2
+        run["status"] = "done" if passed else "failed"
+        if not run.get("_reconciled"):
+            reason = "validation passed" if passed else "validation threshold not met"
+            run.setdefault("log", []).append(f"--- recovered stale run state: {reason} ---")
+            run["_reconciled"] = True
+        _write_run_state(task_id, run)
+        return run
+
+    _write_run_state(task_id, run)
+    return run
 
 
 # ---------------------------------------------------------------------------
@@ -168,13 +303,17 @@ def create_app() -> Flask:
                 data = json.loads(tj.read_text("utf-8"))
             except Exception:
                 continue
-            run = TASK_RUNS.get(d.name, {})
+            run = _reconcile_run_state(d.name)
+            created_at = tj.stat().st_mtime
             tasks.append({
                 "task_id": d.name,
                 "page_name": data.get("page_name", d.name),
                 "source_type": data.get("input", {}).get("source_type", ""),
                 "status": run.get("status", "idle"),
+                "created_at": created_at,
+                "target": _profile_summary(data),
             })
+        tasks.sort(key=lambda item: item.get("created_at", 0), reverse=True)
         return jsonify(tasks)
 
     @app.get("/api/tasks/<task_id>")
@@ -186,14 +325,38 @@ def create_app() -> Flask:
         if not tj.is_file():
             return jsonify(error="not found"), 404
         data = json.loads(tj.read_text("utf-8"))
-        run = TASK_RUNS.get(tid, {})
+        run = _reconcile_run_state(tid)
         # Attach artifacts info
-        artifacts = {}
-        art_dir = _task_dir(tid) / "artifacts"
-        for name in ("current.png", "full.png", "diff.png", "report.json"):
-            artifacts[name] = (art_dir / name).is_file()
+        artifacts = _task_artifacts(tid)
         return jsonify(task=data, run_status=run.get("status", "idle"),
+                       run_step=run.get("step", ""),
+                       exit_code=run.get("exit_code"),
                        artifacts=artifacts)
+
+    @app.delete("/api/tasks/<task_id>")
+    def delete_task(task_id: str):
+        tid = _safe_task_id(task_id)
+        if not tid:
+            return jsonify(error="invalid task id"), 400
+        td = _task_dir(tid)
+        if not td.exists():
+            return jsonify(error="not found"), 404
+
+        with _lock:
+            run = TASK_RUNS.get(tid)
+            if run and run.get("status") == "running":
+                proc = run.get("proc")
+                if proc and proc.poll() is None:
+                    try:
+                        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                    except (ProcessLookupError, OSError):
+                        proc.kill()
+                run["status"] = "stopped"
+                run["exit_code"] = -15
+            TASK_RUNS.pop(tid, None)
+
+        shutil.rmtree(td, ignore_errors=True)
+        return jsonify(ok=True, task_id=tid)
 
     @app.post("/api/tasks")
     def create_task():
@@ -265,14 +428,29 @@ def create_app() -> Flask:
         td = _task_dir(task_id)
 
         try:
-            # init via pipeline
+            image_upload_path = None
+            if source_type == "image":
+                f = request.files.get("file")
+                if not f:
+                    return jsonify(error="file is required for image source"), 400
+                upload_dir = TASKS_DIR / ".uploads"
+                upload_dir.mkdir(parents=True, exist_ok=True)
+                image_upload_path = upload_dir / f"{task_id}{_safe_upload_suffix(f.filename)}"
+                f.save(str(image_upload_path))
+
             init_args = [
                 str(PIPELINE_SH), "init", str(td),
                 "--profile", str(profile_path),
+                "--source-type", "image" if source_type == "image" else "html",
             ]
+            if image_upload_path is not None:
+                init_args += ["--image", str(image_upload_path)]
             if name:
                 init_args += ["--page-name", name]
             subprocess.run(init_args, check=True, capture_output=True, text=True)
+
+            if image_upload_path is not None:
+                image_upload_path.unlink(missing_ok=True)
 
             if source_type == "html":
                 f = request.files.get("file")
@@ -287,25 +465,13 @@ def create_app() -> Flask:
                     if safe_name and ".." not in safe_name:
                         asset.save(str(input_dir / safe_name))
             elif source_type == "image":
-                f = request.files.get("file")
-                if not f:
-                    return jsonify(error="file is required for image source"), 400
                 input_dir = td / "input"
                 input_dir.mkdir(parents=True, exist_ok=True)
-                ext = Path(f.filename or "image.png").suffix or ".png"
-                img_path = input_dir / f"source{ext}"
-                f.save(str(img_path))
                 # Save additional asset images (icons, etc.)
                 for asset in request.files.getlist("assets"):
                     safe_name = Path(asset.filename or "").name
                     if safe_name and ".." not in safe_name:
                         asset.save(str(input_dir / safe_name))
-                # Update task.json for image source
-                tj = _task_json(task_id)
-                task_data = json.loads(tj.read_text("utf-8"))
-                task_data["input"]["source_type"] = "image"
-                task_data["input"]["image_entry"] = f"input/source{ext}"
-                tj.write_text(json.dumps(task_data, indent=2, ensure_ascii=False), "utf-8")
             elif source_type == "url":
                 url = request.form.get("url", "").strip()
                 if not url:
@@ -318,6 +484,9 @@ def create_app() -> Flask:
             # Clean up on failure
             if td.exists():
                 shutil.rmtree(td, ignore_errors=True)
+            upload_dir = TASKS_DIR / ".uploads"
+            for leftover in upload_dir.glob(f"{task_id}.*") if upload_dir.is_dir() else []:
+                leftover.unlink(missing_ok=True)
             return jsonify(error="task init failed",
                            detail=exc.stderr or exc.stdout), 400
 
@@ -356,6 +525,7 @@ def create_app() -> Flask:
                 "exit_code": None,
                 "started": time.time(),
             }
+            _write_run_state(tid, TASK_RUNS[tid])
 
         def _run():
             run_state = TASK_RUNS[tid]
@@ -376,6 +546,8 @@ def create_app() -> Flask:
                     # Detect step changes from log output
                     ll = line.lower()
                     if "refin" in ll or "build-fix" in ll:
+                        if run_state.get("step") != "refine":
+                            run_state["log"].append("--- refining with LLM; this step can take several minutes ---")
                         run_state["step"] = "refine"
                     elif "generat" in ll:
                         run_state["step"] = "generate"
@@ -385,6 +557,7 @@ def create_app() -> Flask:
                         run_state["step"] = "build"
                     elif "validat" in ll or "screenshot" in ll:
                         run_state["step"] = "validate"
+                    _write_run_state(tid, run_state)
                 proc.wait()
                 run_rc = proc.returncode
 
@@ -402,13 +575,18 @@ def create_app() -> Flask:
                         run_state["log"].extend(ep.stderr.splitlines())
                     run_state["exit_code"] = ep.returncode
                     run_state["status"] = "done" if ep.returncode == 0 else "failed"
+                    _write_run_state(tid, run_state)
                 else:
                     run_state["exit_code"] = run_rc
                     run_state["status"] = "failed"
+                    if run_rc == 2:
+                        run_state["log"].append("--- validation threshold not met; artifacts are available for review ---")
+                    _write_run_state(tid, run_state)
             except Exception as exc:
                 run_state["log"].append(f"ERROR: {exc}")
                 run_state["status"] = "failed"
                 run_state["exit_code"] = -1
+                _write_run_state(tid, run_state)
 
         threading.Thread(target=_run, daemon=True).start()
         return jsonify(status="started")
@@ -434,6 +612,7 @@ def create_app() -> Flask:
         run["log"].append("--- stopped by user ---")
         run["status"] = "stopped"
         run["exit_code"] = -15
+        _write_run_state(tid, run)
         return jsonify(status="stopped")
 
     # -- SSE log stream ------------------------------------------------------
@@ -447,12 +626,13 @@ def create_app() -> Flask:
         def generate():
             cursor = 0
             last_step = ""
+            last_heartbeat = 0.0
             while True:
-                run = TASK_RUNS.get(tid)
-                if run is None:
+                run = _reconcile_run_state(tid)
+                if not run:
                     yield "event: done\ndata: {\"reason\":\"no_run\"}\n\n"
                     return
-                log = run["log"]
+                log = run.get("log", [])
                 while cursor < len(log):
                     yield f"event: log\ndata: {json.dumps(log[cursor])}\n\n"
                     cursor += 1
@@ -460,6 +640,15 @@ def create_app() -> Flask:
                 if step != last_step:
                     last_step = step
                     yield f"event: step\ndata: {json.dumps(step)}\n\n"
+                now = time.time()
+                if now - last_heartbeat >= 2:
+                    last_heartbeat = now
+                    payload = {
+                        "status": run.get("status", "idle"),
+                        "step": step,
+                        "updated": now,
+                    }
+                    yield f"event: heartbeat\ndata: {json.dumps(payload)}\n\n"
                 if run["status"] in ("done", "failed", "stopped"):
                     payload = {"status": run["status"],
                                "exit_code": run.get("exit_code")}

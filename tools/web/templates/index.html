@@ -3,136 +3,266 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>llm2lvgl Web UI</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+  <meta name="description" content="llm2lvgl enterprise code generation console for LVGL page delivery.">
+  <title>llm2lvgl Codegen Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
 </head>
 <body>
-<div class="container">
-  <h1><span>llm2lvgl</span> Web UI</h1>
+<a class="skip-link" href="#main-workspace">跳转到主工作区</a>
 
-  <!-- Input section -->
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="html">上传 HTML</button>
-    <button class="tab-btn" data-tab="image">上传图片</button>
-    <button class="tab-btn" data-tab="url">输入网址</button>
-  </div>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="平台导航">
+    <div class="brand-block">
+      <div class="brand-mark" aria-hidden="true">L2</div>
+      <div>
+        <p class="brand-kicker">LVGL Codegen</p>
+        <h1>llm2lvgl</h1>
+      </div>
+    </div>
 
-  <div id="tab-html" class="tab-content active">
-    <div class="drop-zone" id="html-drop-zone">
-      <div>拖拽 HTML 文件到此处，或点击选择<br><small>支持单个 HTML 或 HTML + CSS/JS/图片（可多选）</small></div>
-      <input type="file" id="html-file" accept=".html,.htm,.css,.js,.png,.jpg,.jpeg,.gif,.svg,.webp,.woff,.woff2,.ttf,.eot" multiple>
-    </div>
-    <div class="file-list" id="html-file-list"></div>
-  </div>
-  <div id="tab-image" class="tab-content">
-    <div class="drop-zone" id="image-drop-zone">
-      <div>拖拽图片到此处，或点击选择<br><small>主截图 + 可选的图标/资源图片</small></div>
-      <input type="file" id="image-file" accept="image/*" multiple>
-    </div>
-    <div class="file-list" id="image-file-list"></div>
-  </div>
-  <div id="tab-url" class="tab-content">
-    <div class="form-group">
-      <label for="url-input">页面网址</label>
-      <input type="url" id="url-input" placeholder="https://example.com/page">
-    </div>
-  </div>
+    <nav class="nav-stack" aria-label="主导航">
+      <a class="nav-item active" href="#main-workspace">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path d="M4 5.5h16M4 12h16M4 18.5h10"/></svg>
+        </span>
+        <span>生成工作台</span>
+      </a>
+      <a class="nav-item" href="#result-panel">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+        </span>
+        <span>产物审查</span>
+      </a>
+      <a class="nav-item" href="#history-panel">
+        <span class="nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false"><path d="M4 12a8 8 0 1 0 2.35-5.65M4 4.5v4h4M12 7.5V12l3 2"/></svg>
+        </span>
+        <span>任务历史</span>
+      </a>
+    </nav>
 
-  <!-- Settings -->
-  <details class="settings" id="settings-panel" open>
-    <summary>LLM 设置</summary>
-    <div class="settings-body">
-      <div class="form-group">
-        <label for="setting-api-key">API Key</label>
-        <input type="password" id="setting-api-key" placeholder="sk-...">
-      </div>
-      <div class="form-group">
-        <label for="setting-model">模型</label>
-        <input type="text" id="setting-model" list="model-candidates" placeholder="例如 gpt-4o、deepseek-chat，或输入任意模型名称">
-        <datalist id="model-candidates">
-          <option value="gpt-4o">
-          <option value="gpt-4o-mini">
-          <option value="gpt-4.1">
-          <option value="gpt-4.1-mini">
-          <option value="gpt-4.1-nano">
-          <option value="deepseek-chat">
-          <option value="deepseek-reasoner">
-        </datalist>
-      </div>
-      <div class="form-group">
-        <label for="setting-base-url">Base URL（可选）</label>
-        <input type="url" id="setting-base-url" placeholder="https://api.openai.com/v1">
-      </div>
-      <button class="btn btn-sm" id="save-settings-btn">保存</button>
-      <span class="settings-msg" id="settings-msg"></span>
-    </div>
-  </details>
+    <section class="sidebar-card">
+      <div class="sidebar-card__label">Pipeline</div>
+      <div class="sidebar-card__value">HTML / Image / URL</div>
+      <p>输入设计源，生成可移植 LVGL C 代码，并用 SDL 截图做视觉校验。</p>
+    </section>
+  </aside>
 
-  <div class="form-group">
-    <label>目标平台</label>
-    <select id="profile-select"></select>
-    <div id="custom-profile" class="custom-profile" style="display:none">
-      <div class="form-group" style="margin-top:10px">
-        <label for="custom-profile-name">平台名称</label>
-        <input type="text" id="custom-profile-name" placeholder="例如: Raspberry Pi 7inch">
+  <div class="workspace">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Enterprise generation console</p>
+        <h2>LVGL 页面代码生成平台</h2>
       </div>
-      <div class="profile-resolution">
-        <div class="form-group" style="flex:1">
-          <label for="custom-width">宽度 (px)</label>
-          <input type="number" id="custom-width" min="100" max="4096" placeholder="1024">
+      <div class="topbar-actions">
+        <span class="status-pill" id="global-status">就绪</span>
+        <a class="doc-link" href="https://github.com/lvgl/lvgl" target="_blank" rel="noreferrer">LVGL</a>
+      </div>
+    </header>
+
+    <main class="main-grid" id="main-workspace">
+      <section class="panel create-panel" aria-labelledby="create-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Create</p>
+            <h3 id="create-title">创建生成任务</h3>
+          </div>
+          <span class="panel-meta">单页交付</span>
         </div>
-        <span class="resolution-x">&times;</span>
-        <div class="form-group" style="flex:1">
-          <label for="custom-height">高度 (px)</label>
-          <input type="number" id="custom-height" min="100" max="4096" placeholder="600">
+
+        <div class="notice" id="form-notice" role="status" aria-live="polite"></div>
+
+        <div class="tabs" role="tablist" aria-label="输入源">
+          <button class="tab-btn active" data-tab="html" type="button" role="tab">HTML 文件</button>
+          <button class="tab-btn" data-tab="image" type="button" role="tab">设计截图</button>
+          <button class="tab-btn" data-tab="url" type="button" role="tab">远程 URL</button>
         </div>
-      </div>
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="task-name">任务名称（可选）</label>
-    <input type="text" id="task-name" placeholder="my_dashboard">
-  </div>
-  <button class="btn" id="start-btn">开始</button>
-  <button class="btn btn-stop" id="stop-btn" style="display:none">停止</button>
 
-  <!-- Progress section -->
-  <div class="steps">
-    <span class="step" data-step="init">初始化</span>
-    <span class="step" data-step="generate">生成</span>
-    <span class="step" data-step="lint">检查</span>
-    <span class="step" data-step="build">构建</span>
-    <span class="step" data-step="validate">验证</span>
-    <span class="step" data-step="refine">精调</span>
-    <span class="step" data-step="export">导出</span>
-  </div>
-  <div class="log-box"></div>
+        <div id="tab-html" class="tab-content active" role="tabpanel">
+          <div class="drop-zone" id="html-drop-zone">
+            <input type="file" id="html-file" accept=".html,.htm,.css,.js,.png,.jpg,.jpeg,.gif,.svg,.webp,.woff,.woff2,.ttf,.eot" multiple>
+            <div class="drop-zone__icon" aria-hidden="true">HTML</div>
+            <div>
+              <strong>上传 HTML 页面和本地资源</strong>
+              <small>支持单个 HTML，或 HTML + CSS / JS / 图片 / 字体多文件上传。</small>
+            </div>
+          </div>
+          <div class="file-list" id="html-file-list" aria-live="polite"></div>
+        </div>
 
-  <!-- Results section -->
-  <div class="results">
-    <div class="report-summary" id="report-summary"></div>
-    <div class="image-compare">
-      <figure><img id="img-ref" alt="参考图"><figcaption>参考图 / 当前图</figcaption></figure>
-      <figure><img id="img-actual" alt="完整截图"><figcaption>完整截图</figcaption></figure>
-      <figure><img id="img-diff" alt="差异热力图"><figcaption>差异热力图</figcaption></figure>
-    </div>
-    <button class="btn" id="download-btn">下载 LVGL 交付包</button>
-    <div class="code-preview">
-      <button class="code-toggle">查看生成的代码</button>
-      <pre class="code-block" id="code-block"></pre>
-    </div>
-  </div>
+        <div id="tab-image" class="tab-content" role="tabpanel">
+          <div class="drop-zone" id="image-drop-zone">
+            <input type="file" id="image-file" accept="image/*" multiple>
+            <div class="drop-zone__icon" aria-hidden="true">IMG</div>
+            <div>
+              <strong>上传设计截图</strong>
+              <small>第一张图片作为主参考图，其余图片会作为图标或素材传给生成流程。</small>
+            </div>
+          </div>
+          <div class="file-list" id="image-file-list" aria-live="polite"></div>
+        </div>
 
-  <!-- History -->
-  <div class="history">
-    <h3>历史记录</h3>
-    <ul class="task-list" id="task-list"></ul>
+        <div id="tab-url" class="tab-content" role="tabpanel">
+          <div class="form-group">
+            <label for="url-input">页面网址</label>
+            <input type="url" id="url-input" placeholder="https://example.com/page" autocomplete="url" inputmode="url">
+            <p class="field-hint">适合静态页面或可直接抓取 HTML 的页面。</p>
+          </div>
+        </div>
+
+        <div class="config-grid">
+          <div class="form-group">
+            <label for="profile-select">目标平台</label>
+            <select id="profile-select"></select>
+            <p class="field-hint profile-summary" id="profile-summary">正在加载目标规格...</p>
+          </div>
+          <div class="form-group">
+            <label for="task-name">任务名称</label>
+            <input type="text" id="task-name" placeholder="factory_dashboard_v1" autocomplete="off">
+          </div>
+        </div>
+
+        <div id="custom-profile" class="custom-profile" style="display:none">
+          <div class="form-group">
+            <label for="custom-profile-name">平台名称</label>
+            <input type="text" id="custom-profile-name" placeholder="T113 2105x404">
+          </div>
+          <div class="profile-resolution">
+            <div class="form-group">
+              <label for="custom-width">宽度 (px)</label>
+              <input type="number" id="custom-width" min="100" max="4096" placeholder="1024" inputmode="numeric">
+            </div>
+            <span class="resolution-x" aria-hidden="true">×</span>
+            <div class="form-group">
+              <label for="custom-height">高度 (px)</label>
+              <input type="number" id="custom-height" min="100" max="4096" placeholder="600" inputmode="numeric">
+            </div>
+          </div>
+        </div>
+
+        <details class="settings" id="settings-panel">
+          <summary>
+            <span>模型与 API 设置</span>
+            <small>OpenAI 兼容接口</small>
+          </summary>
+          <div class="settings-body">
+            <div class="form-group">
+              <label for="setting-api-key">API Key</label>
+              <input type="password" id="setting-api-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label for="setting-model">模型</label>
+              <input type="text" id="setting-model" list="model-candidates" placeholder="gpt-4o / deepseek-chat" autocomplete="off" spellcheck="false">
+              <datalist id="model-candidates">
+                <option value="gpt-4o">
+                <option value="gpt-4o-mini">
+                <option value="gpt-4.1">
+                <option value="gpt-4.1-mini">
+                <option value="gpt-4.1-nano">
+                <option value="deepseek-chat">
+                <option value="deepseek-reasoner">
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label for="setting-base-url">Base URL</label>
+              <input type="url" id="setting-base-url" placeholder="https://api.openai.com/v1" autocomplete="url" inputmode="url">
+            </div>
+            <div class="settings-actions">
+              <button class="btn btn-secondary btn-sm" id="save-settings-btn" type="button">保存设置</button>
+              <span class="settings-msg" id="settings-msg" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+        </details>
+
+        <div class="action-bar">
+          <button class="btn btn-primary" id="start-btn" type="button">开始生成</button>
+          <button class="btn btn-danger" id="stop-btn" type="button" style="display:none">停止任务</button>
+        </div>
+      </section>
+
+      <aside class="panel monitor-panel" aria-labelledby="monitor-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Runtime</p>
+            <h3 id="monitor-title">流水线监控</h3>
+          </div>
+          <span class="panel-meta" id="task-context">未选择任务</span>
+        </div>
+
+        <div class="steps" aria-label="任务步骤">
+          <span class="step" data-step="init"><i></i>初始化</span>
+          <span class="step" data-step="generate"><i></i>生成</span>
+          <span class="step" data-step="lint"><i></i>检查</span>
+          <span class="step" data-step="build"><i></i>构建</span>
+          <span class="step" data-step="validate"><i></i>验证</span>
+          <span class="step" data-step="refine"><i></i>精调</span>
+          <span class="step" data-step="export"><i></i>导出</span>
+        </div>
+
+        <div class="log-shell">
+          <div class="log-header">
+            <span>运行日志</span>
+            <button class="text-btn" id="clear-log-btn" type="button">清空</button>
+          </div>
+          <div class="log-box" aria-live="polite"></div>
+          <div class="empty-log" id="empty-log">任务启动后会在这里显示实时日志。</div>
+        </div>
+      </aside>
+
+      <section class="panel results" id="result-panel" aria-labelledby="result-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Review</p>
+            <h3 id="result-title">产物审查</h3>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="download-btn" type="button">下载交付包</button>
+        </div>
+
+        <div class="report-summary" id="report-summary">
+          <div class="empty-state">
+            <strong>暂无可审查产物</strong>
+            <span>运行任务后会显示截图、diff 指标和生成代码。</span>
+          </div>
+        </div>
+
+        <div class="image-compare">
+          <figure>
+            <img id="img-ref" alt="当前截图">
+            <figcaption>当前截图</figcaption>
+          </figure>
+          <figure>
+            <img id="img-actual" alt="完整截图">
+            <figcaption>完整截图</figcaption>
+          </figure>
+          <figure>
+            <img id="img-diff" alt="差异热力图">
+            <figcaption>差异热力图</figcaption>
+          </figure>
+        </div>
+
+        <div class="code-preview">
+          <button class="code-toggle" type="button">查看生成代码</button>
+          <pre class="code-block" id="code-block"></pre>
+        </div>
+      </section>
+
+      <section class="panel history" id="history-panel" aria-labelledby="history-title">
+        <div class="panel-header">
+          <div>
+            <p class="section-label">Tasks</p>
+            <h3 id="history-title">历史记录</h3>
+          </div>
+          <span class="panel-meta">最近任务</span>
+        </div>
+        <ul class="task-list" id="task-list" aria-live="polite"></ul>
+      </section>
+    </main>
   </div>
 </div>
 
-<!-- Lightbox -->
+<div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt="放大查看"></div>
 
-<script src="{{ url_for('static', filename='app.js') }}?v=3"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v=6"></script>
 </body>
 </html>

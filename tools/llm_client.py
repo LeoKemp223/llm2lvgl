@@ -1,4 +1,15 @@
-"""Unified OpenAI API client for LVGL code generation and refinement."""
+"""Unified OpenAI API client for LVGL code generation and refinement.
+
+Supports two endpoints:
+  - /chat/completions  (default; GPT-4o and most standard models)
+  - /responses          (reasoning / Codex models: gpt-5.x, o1/o3/o4, codex)
+
+The endpoint is chosen per-call by `_use_responses_api()`: an explicit
+`api_type` ("chat" | "responses") in .llm_settings.json wins, otherwise the
+model name is matched against reasoning-model hints. This lets the same client
+talk to a normal chat model and to a Codex/reasoning model behind a gateway
+that only exposes /responses for those models.
+"""
 
 import base64
 import json
@@ -10,6 +21,12 @@ from pathlib import Path
 import httpx
 
 SETTINGS_PATH = Path(__file__).resolve().parent.parent / "workspace" / ".llm_settings.json"
+
+# Model-name fragments that indicate a Responses-API (reasoning/Codex) model.
+REASONING_MODEL_HINTS = ("gpt-5", "gpt-o1", "gpt-o3", "gpt-o4", "-o1", "-o3", "-o4", "codex")
+
+# Sentinel returned by SSE parsers when the stream is logically complete.
+_STREAM_DONE = "__stream_done__"
 
 
 def load_settings() -> dict:
@@ -40,29 +57,106 @@ def _default_model() -> str:
     return settings.get("model") or os.environ.get("OPENAI_MODEL", "gpt-4o")
 
 
-def chat(
-    messages: list,
-    model: str | None = None,
-    temperature: float = 0.2,
-    max_tokens: int = 8192,
-) -> str:
-    """Send a chat completion request via raw httpx (bypasses SDK User-Agent filtering)."""
-    api_key, default_model, base_url = _get_config()
-    model = model or default_model
-    url = (base_url or "https://api.openai.com/v1").rstrip("/") + "/chat/completions"
+def _use_responses_api(model: str, settings: dict) -> bool:
+    """Decide whether to call /responses instead of /chat/completions.
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-    }
-    body = {
-        "model": model,
-        "messages": messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-        "stream": True,
-    }
+    Priority:
+      1. settings['api_type'] == 'responses'  -> True
+         settings['api_type'] == 'chat'       -> False
+      2. settings['use_responses_api'] (bool) if present
+      3. auto-detect by model name (gpt-5* / o1 / o3 / o4 / codex -> responses)
+    """
+    explicit = settings.get("api_type")
+    if isinstance(explicit, str) and explicit.strip():
+        return explicit.strip().lower() == "responses"
+    if "use_responses_api" in settings:
+        return bool(settings["use_responses_api"])
+    m = (model or "").lower()
+    return any(h in m for h in REASONING_MODEL_HINTS)
 
+
+def _messages_to_responses_input(messages: list) -> list:
+    """Convert chat-style messages to Responses API `input` items.
+
+    Roles pass through (system/user/assistant/developer). Multimodal content
+    parts are remapped: text -> input_text, image_url -> input_image.
+    """
+    items: list = []
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content")
+        if isinstance(content, str):
+            items.append({"role": role, "content": content})
+            continue
+        if isinstance(content, list):
+            parts: list = []
+            for part in content:
+                ptype = part.get("type")
+                if ptype == "text":
+                    parts.append({"type": "input_text", "text": part.get("text", "")})
+                elif ptype == "image_url":
+                    url = part.get("image_url", {}).get("url", "")
+                    parts.append({"type": "input_image", "image_url": url})
+                else:
+                    parts.append(part)
+            items.append({"role": role, "content": parts})
+    return items
+
+
+def _parse_chat_line(line: str) -> str | None:
+    """Parse one SSE line from /chat/completions.
+
+    Returns delta text, None (skip), or the _STREAM_DONE sentinel.
+    """
+    if not line.startswith("data: "):
+        return None
+    payload = line[6:]
+    if payload.strip() == "[DONE]":
+        return _STREAM_DONE
+    try:
+        data = json.loads(payload)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    choices = data.get("choices") or []
+    if choices:
+        return choices[0].get("delta", {}).get("content")
+    return None
+
+
+def _parse_responses_line(line: str) -> str | None:
+    """Parse one SSE line from /responses.
+
+    Returns delta text (from response.output_text.delta), None (skip), or the
+    _STREAM_DONE sentinel on completion/failure events.
+    """
+    if not line.startswith("data: "):
+        return None
+    payload = line[6:]
+    if payload.strip() == "[DONE]":
+        return _STREAM_DONE
+    try:
+        data = json.loads(payload)
+    except (json.JSONDecodeError, ValueError):
+        return None
+    etype = data.get("type", "")
+    if etype == "response.output_text.delta":
+        return data.get("delta")
+    if etype in (
+        "response.completed",
+        "response.failed",
+        "response.error",
+        "response.incomplete",
+    ):
+        return _STREAM_DONE
+    return None
+
+
+def _do_stream(url: str, headers: dict, body: dict, parse_line) -> str:
+    """POST a streaming request with retry; assemble text from SSE deltas.
+
+    `parse_line(line) -> str | None` parses one SSE line and returns either a
+    delta string, None (ignore), or the _STREAM_DONE sentinel.
+    """
     last_err: Exception | None = None
     for attempt in range(5):
         try:
@@ -80,20 +174,13 @@ def chat(
                     chunks: list[str] = []
                     total_chars = 0
                     for line in resp.iter_lines():
-                        if not line.startswith("data: "):
-                            continue
-                        payload = line[6:]
-                        if payload.strip() == "[DONE]":
+                        result = parse_line(line)
+                        if result is _STREAM_DONE or result == _STREAM_DONE:
                             break
-                        data = json.loads(payload)
-                        choices = data.get("choices", [])
-                        if choices:
-                            delta = choices[0].get("delta", {})
-                            content = delta.get("content")
-                            if content:
-                                chunks.append(content)
-                                total_chars += len(content)
-                                print(f"\r[llm] generating... {total_chars} chars", end="", flush=True)
+                        if result:
+                            chunks.append(result)
+                            total_chars += len(result)
+                            print(f"\r[llm] generating... {total_chars} chars", end="", flush=True)
                     if total_chars:
                         print(f"\r[llm] done, {total_chars} chars        ", flush=True)
                     return "".join(chunks)
@@ -112,6 +199,47 @@ def chat(
             if attempt < 4:
                 time.sleep(wait)
     raise RuntimeError(f"OpenAI API failed after 5 attempts: {last_err}")
+
+
+def chat(
+    messages: list,
+    model: str | None = None,
+    temperature: float = 0.2,
+    max_tokens: int = 8192,
+) -> str:
+    """Send a completion request via raw httpx (bypasses SDK User-Agent filtering).
+
+    Auto-selects /chat/completions or /responses based on the model: reasoning /
+    Codex models (gpt-5.x, o1/o3/o4, codex) are routed to the Responses API.
+    """
+    api_key, default_model, base_url = _get_config()
+    model = model or default_model
+    settings = load_settings()
+    base = (base_url or "https://api.openai.com/v1").rstrip("/")
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+
+    if _use_responses_api(model, settings):
+        url = base + "/responses"
+        body = {
+            "model": model,
+            "input": _messages_to_responses_input(messages),
+            "max_output_tokens": max_tokens,
+            "stream": True,
+        }
+        return _do_stream(url, headers, body, _parse_responses_line)
+
+    url = base + "/chat/completions"
+    body = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "stream": True,
+    }
+    return _do_stream(url, headers, body, _parse_chat_line)
 
 
 def extract_code_block(response: str, lang: str = "c") -> str:

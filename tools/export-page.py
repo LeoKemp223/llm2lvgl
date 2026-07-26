@@ -40,6 +40,10 @@ def main() -> int:
     copy_file(output_c, bundle_dir / output_c.name)
     copy_file(output_h, bundle_dir / output_h.name)
 
+    asset_manifest = task_path.parent / "generated" / "asset_manifest.json"
+    if asset_manifest.is_file():
+        copy_file(asset_manifest, bundle_dir / "asset_manifest.json")
+
     if task["export"].get("include_assets", False):
         assets_dir = resolve(task_path, task["input"]["assets_dir"])
         if assets_dir.exists():
@@ -67,7 +71,7 @@ def main() -> int:
         "exported_files": [
             output_c.name,
             output_h.name,
-        ],
+        ] + (["asset_manifest.json"] if asset_manifest.is_file() else []),
     }
     (bundle_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 

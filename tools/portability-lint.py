@@ -17,6 +17,15 @@ LIBC_ALLOC_PATTERN = re.compile(r"\b(malloc|calloc|realloc|free)\s*\(")
 LIBC_PRINTF_PATTERN = re.compile(r"\b(printf|fprintf|sprintf)\s*\(")
 LINE_COMMENT_PATTERN = re.compile(r"//.*$", re.MULTILINE)
 BLOCK_COMMENT_PATTERN = re.compile(r"/\*.*?\*/", re.DOTALL)
+ICON_WITH_BODY_FONT_PATTERN = re.compile(
+    r"lv_label_set_text\s*\([^;]*(?:LV_SYMBOL_|\\x[0-9A-Fa-f]{2})[^;]*;(?:(?!lv_label_set_text).)*?"
+    r"lv_obj_set_style_text_font\s*\([^;]*ui_font_get\s*\(",
+    re.DOTALL,
+)
+ICON_HELPER_BODY_FONT_PATTERN = re.compile(
+    r"(?:static\s+)?(?:lv_obj_t\s*\*\s*)?\w*icon\w*\s*\([^)]*\)\s*\{(?:(?!\n\}).)*ui_font_get\s*\(",
+    re.DOTALL | re.IGNORECASE,
+)
 
 
 def load_json(path: Path) -> dict:
@@ -71,6 +80,24 @@ def lint_file(path: Path, profile: dict, task: dict) -> List[Dict[str, object]]:
                 "line": line,
                 "message": message,
             })
+
+    for match in ICON_WITH_BODY_FONT_PATTERN.finditer(stripped):
+        line = stripped.count("\n", 0, match.start()) + 1
+        findings.append({
+            "severity": "warning",
+            "path": str(path),
+            "line": line,
+            "message": "Icon label appears to use ui_font_get(); use ui_icon_font_get() for LV_SYMBOL or Material icon text.",
+        })
+
+    for match in ICON_HELPER_BODY_FONT_PATTERN.finditer(stripped):
+        line = stripped.count("\n", 0, match.start()) + 1
+        findings.append({
+            "severity": "warning",
+            "path": str(path),
+            "line": line,
+            "message": "Icon helper appears to use ui_font_get(); icon helpers should use ui_icon_font_get().",
+        })
 
     return findings
 

@@ -106,6 +106,7 @@ def build_generate_prompt(
     generation: dict,
     image_path: Optional[Path] = None,
     asset_images: Optional[List[Path]] = None,
+    asset_manifest: Optional[dict] = None,
 ) -> list:
     """Build the messages list for the LLM code generation call."""
     # Load system prompt template
@@ -135,6 +136,19 @@ def build_generate_prompt(
         html_content,
         "```",
     ]
+
+    if asset_manifest and asset_manifest.get("assets"):
+        user_parts.extend([
+            "",
+            "## Extracted Visual Assets",
+            "These crop assets are generated from the original screenshot. Use them as precise visual references for "
+            "colors, local layout, decorative details, and target bounding boxes. If filesystem assets are allowed, "
+            "you may place them with lv_image_create/lv_image_set_src. If filesystem assets are not allowed, recreate "
+            "them with LVGL primitives while matching the viewport_box coordinates.",
+            "```json",
+            json.dumps(asset_manifest, indent=2, ensure_ascii=False),
+            "```",
+        ])
 
     # For image-based tasks, include the original screenshot so the LLM can
     # see the actual design rather than relying solely on the drafted HTML.
@@ -172,6 +186,9 @@ def build_generate_prompt(
 
 def write_codegen_prompt(task_path: Path, task: dict, profile: dict) -> None:
     prompt_path = task_path.parent / "generated" / "codegen_prompt.md"
+    source_type = task.get("input", {}).get("source_type", "html")
+    base_driver = "llm_gpt4o"
+    driver = f"image_to_html_v1+{base_driver}" if source_type == "image" else base_driver
     lines = [
         f"# Codegen Prompt For {task['page_name']}",
         "",
@@ -192,7 +209,7 @@ def write_codegen_prompt(task_path: Path, task: dict, profile: dict) -> None:
         f"- component_mode: `{task['generation']['component_mode']}`",
         "",
         "## Driver",
-        "- driver: `llm_gpt4o`",
+        f"- driver: `{driver}`",
     ]
     prompt_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -282,13 +299,15 @@ def main() -> int:
         input_dir = task_path.parent / "input"
         if input_dir.is_dir():
             img_exts = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".gif", ".svg"}
-            for f in sorted(input_dir.iterdir()):
+            for f in sorted(input_dir.rglob("*")):
                 if f.suffix.lower() in img_exts and f.is_file() and f != image_path:
                     asset_images.append(f)
+    asset_manifest_path = task_path.parent / "generated" / "asset_manifest.json"
+    asset_manifest = load_json(asset_manifest_path) if asset_manifest_path.is_file() else None
 
     messages = build_generate_prompt(
         page_id, page_name, html_content, profile, viewport, task["generation"],
-        image_path=image_path, asset_images=asset_images,
+        image_path=image_path, asset_images=asset_images, asset_manifest=asset_manifest,
     )
     response = llm_client.chat(messages)
     c_code = llm_client.extract_code_block(response, "c")

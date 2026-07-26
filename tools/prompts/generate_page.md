@@ -65,6 +65,118 @@ lv_obj_t * my_dashboard_page_get_content_root(void)
 }
 ```
 
+## Icon Strategy (Material Symbols 图标库)
+
+本项目内置 **Material Symbols Outlined** 图标字体,通过 `ui_icon_font_get(size)` 获取(**独立于**正文字体 `ui_font_get`)。
+
+### 标准用法
+
+```c
+lv_obj_t * icon = lv_label_create(parent);
+lv_label_set_text(icon, "\xEE\xA2\x8A");              // home
+lv_obj_set_style_text_font(icon, ui_icon_font_get(24), 0);   // 图标字体,不是 ui_font_get
+lv_obj_set_style_text_color(icon, lv_color_hex(0xFFFFFF), 0); // 换色一行
+```
+
+### 图标 → C 字符串字面量(已按 UTF-8 编码,直接复制)
+
+
+**导航/操作**
+
+| name | C 字符串 |
+|---|---|
+| `home` | `"\xEE\xA2\x8A"` |
+| `menu` | `"\xEE\x97\x92"` |
+| `arrow_back` | `"\xEE\x97\x84"` |
+| `arrow_forward` | `"\xEE\x97\x88"` |
+| `search` | `"\xEE\xA2\xB6"` |
+| `close` | `"\xEE\x85\x8C"` |
+| `check` | `"\xEE\x97\x8A"` |
+| `add` | `"\xEE\x85\x85"` |
+| `remove` | `"\xEE\x85\x9B"` |
+| `refresh` | `"\xEE\x97\x95"` |
+| `more_vert` | `"\xEE\x97\x94"` |
+| `more_horiz` | `"\xEE\x97\x93"` |
+| `expand_more` | `"\xEE\x97\x8F"` |
+| `expand_less` | `"\xEE\x97\x8E"` |
+| `sort` | `"\xEE\x85\xA4"` |
+| `filter_list` | `"\xEE\x85\x92"` |
+
+**媒体**
+
+| name | C 字符串 |
+|---|---|
+| `play_arrow` | `"\xEE\x80\xB7"` |
+| `pause` | `"\xEE\x80\xB4"` |
+| `volume_up` | `"\xEE\x81\x90"` |
+| `mic` | `"\xEE\x80\xA9"` |
+| `videocam` | `"\xEE\x81\x8B"` |
+| `image` | `"\xEE\x89\x91"` |
+| `photo_camera` | `"\xEE\x8E\xB0"` |
+
+**通信/设备**
+
+| name | C 字符串 |
+|---|---|
+| `wifi` | `"\xEE\x98\xBE"` |
+| `bluetooth` | `"\xEE\x86\xA7"` |
+| `signal_cellular_4_bar` | `"\xEE\x87\x88"` |
+| `battery_full` | `"\xEE\x86\xA4"` |
+| `call` | `"\xEE\x82\xB0"` |
+| `mail` | `"\xEE\x82\xBE"` |
+| `notifications` | `"\xEE\x9F\xB4"` |
+| `cloud` | `"\xEE\x8A\xBD"` |
+
+**设置/系统**
+
+| name | C 字符串 |
+|---|---|
+| `settings` | `"\xEE\xA2\xB8"` |
+| `power_settings_new` | `"\xEE\xA2\xAC"` |
+| `lock` | `"\xEE\xA2\x8D"` |
+| `key` | `"\xEE\x9C\xBC"` |
+| `info` | `"\xEE\xA2\x8E"` |
+| `warning` | `"\xEE\x80\x82"` |
+| `visibility` | `"\xEE\x90\x97"` |
+| `tune` | `"\xEE\x90\xA9"` |
+
+**内容/文件**
+
+| name | C 字符串 |
+|---|---|
+| `edit` | `"\xEE\x85\x90"` |
+| `save` | `"\xEE\x85\xA1"` |
+| `delete` | `"\xEE\xA1\xB2"` |
+| `share` | `"\xEE\xA0\x8D"` |
+| `download` | `"\xEE\x85\xB1"` |
+| `send` | `"\xEE\x85\xA3"` |
+| `content_copy` | `"\xEE\x85\x8D"` |
+| `print` | `"\xEE\x95\x95"` |
+| `folder` | `"\xEE\x8B\x87"` |
+| `list` | `"\xEE\xA2\x96"` |
+| `favorite` | `"\xEE\xA1\xBD"` |
+| `star` | `"\xEE\xA0\xB8"` |
+| `flag` | `"\xEE\x85\x93"` |
+
+**家居/环境**
+
+| name | C 字符串 |
+|---|---|
+| `lightbulb` | `"\xEE\x83\xB0"` |
+| `thermostat` | `"\xEF\x81\xB6"` |
+| `water_drop` | `"\xEE\x9E\x98"` |
+| `timer` | `"\xEE\x90\xA5"` |
+| `schedule` | `"\xEE\x86\x92"` |
+| `air` | `"\xEE\xBF\x98"` |
+| `shopping_cart` | `"\xEE\x95\x87"` |
+| `person` | `"\xEE\x9F\xBD"` |
+
+### 规则
+- 遇到图标 → **优先**用上表的 Material Symbols,字体用 `ui_icon_font_get(size)`(**不要**用 `ui_font_get`,那是 NotoSansCJK 正文,不含图标)。
+- **禁止**用 `lv_line` / `lv_canvas` / `lv_obj` 手绘图标。
+- 图标与文字并排时,各自独立 label、各自字体。
+- 表外图标若不确定 codepoint,改用近似的上表图标或 `LV_SYMBOL_*`。
+
 ## Important Notes
 
 - Use LVGL flex layout (`LV_LAYOUT_FLEX`) for arranging elements when the HTML uses flexbox
@@ -73,6 +185,20 @@ lv_obj_t * my_dashboard_page_get_content_root(void)
 - Map font sizes to `ui_font_get()` calls
 - Keep all code in a single file, no external dependencies beyond lvgl.h and ui_font.h
 - Output ONLY the C code inside a ```c code fence
+
+## Step 1: Identify Interactive Controls (REQUIRED)
+
+Before writing any C code, scan the HTML/image and enumerate EVERY interactive control. For each, determine its type, label, and state (button / checkbox / switch / slider / dropdown / textarea / arc / bar / roller).
+
+Recognize controls beyond literal tags — also treat as interactive:
+- `<div>`/`<span>` with `role="button"`, `onclick`, `cursor:pointer`, or button-like styling
+- `<input type="checkbox|radio|range|text|password">`, `<select>`, `<textarea>`
+- toggle switches (rounded track + knob), progress bars, circular gauges
+
+If unsure whether an element is interactive or decorative, judge by its visual role, NOT its tag. A styled clickable `<div>` is a button — do NOT render it as a static `lv_obj`.
+
+Output a one-line control inventory as a C comment at the very top of the file, before the `#include` lines, e.g.:
+`// Controls: 1 button(Submit), 1 switch(Auto), 1 slider(Volume 0-100), 2 checkbox`
 
 ## Native Widget Policy (CRITICAL)
 

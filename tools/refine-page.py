@@ -97,6 +97,8 @@ def build_refine_prompt(
             f"- diff_ratio: {report['diff_ratio']}\n"
             f"- mean_abs_diff: {report['mean_abs_diff']}\n"
             f"- pass: {report['pass']}\n\n"
+            f"## Visual Diagnostics\n"
+            f"```json\n{json.dumps(report.get('visual_diagnostics', {}), indent=2, ensure_ascii=False)}\n```\n\n"
             f"## Current C Source\n```c\n{source_code}\n```"
         ),
     })
