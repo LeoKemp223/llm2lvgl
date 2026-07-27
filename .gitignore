@@ -11,6 +11,7 @@ lv_port_linux_test/
 # Artifacts (regeneratable)
 workspace/tasks/*/artifacts/
 workspace/tasks/*/export/
+workspace/.llm_settings.json
 
 # OS
 .DS_Store

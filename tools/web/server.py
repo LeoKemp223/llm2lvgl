@@ -81,6 +81,24 @@ def _task_artifacts(task_id: str) -> dict[str, bool]:
     return artifacts
 
 
+def _task_analysis_path(task_id: str, task: dict | None = None) -> Path:
+    if task is None:
+        tj = _task_json(task_id)
+        task = json.loads(tj.read_text("utf-8")) if tj.is_file() else {}
+    rel = task.get("analysis", {}).get("output", "analysis/analysis.json")
+    return _task_dir(task_id) / rel
+
+
+def _load_analysis(task_id: str, task: dict | None = None) -> dict:
+    path = _task_analysis_path(task_id, task)
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
 def _profile_summary(task: dict) -> dict:
     target = task.get("target", {})
     profile_ref = target.get("profile", "")
@@ -312,6 +330,10 @@ def create_app() -> Flask:
                 "status": run.get("status", "idle"),
                 "created_at": created_at,
                 "target": _profile_summary(data),
+                "analysis": {
+                    "confirmed": bool(data.get("analysis", {}).get("confirmed", False)),
+                    "validation_mode": data.get("validation", {}).get("mode", "pixel"),
+                },
             })
         tasks.sort(key=lambda item: item.get("created_at", 0), reverse=True)
         return jsonify(tasks)
@@ -331,7 +353,8 @@ def create_app() -> Flask:
         return jsonify(task=data, run_status=run.get("status", "idle"),
                        run_step=run.get("step", ""),
                        exit_code=run.get("exit_code"),
-                       artifacts=artifacts)
+                       artifacts=artifacts,
+                       analysis=_load_analysis(tid, data))
 
     @app.delete("/api/tasks/<task_id>")
     def delete_task(task_id: str):
@@ -503,6 +526,62 @@ def create_app() -> Flask:
 
         return jsonify(task_id=task_id), 201
 
+    @app.post("/api/tasks/<task_id>/analyze")
+    def analyze_task(task_id: str):
+        tid = _safe_task_id(task_id)
+        if not tid:
+            return jsonify(error="invalid task id"), 400
+        tj = _task_json(tid)
+        if not tj.is_file():
+            return jsonify(error="not found"), 404
+
+        try:
+            proc = subprocess.run(
+                [str(PIPELINE_SH), "analyze", str(tj)],
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+            )
+        except subprocess.CalledProcessError as exc:
+            return jsonify(error="analysis failed", detail=exc.stderr or exc.stdout), 400
+
+        task = json.loads(tj.read_text("utf-8"))
+        return jsonify(ok=True, log=proc.stdout, analysis=_load_analysis(tid, task), task=task)
+
+    @app.post("/api/tasks/<task_id>/analysis/confirm")
+    def confirm_analysis(task_id: str):
+        tid = _safe_task_id(task_id)
+        if not tid:
+            return jsonify(error="invalid task id"), 400
+        tj = _task_json(tid)
+        if not tj.is_file():
+            return jsonify(error="not found"), 404
+        body = request.get_json(silent=True) or {}
+        analysis = body.get("analysis")
+        task = json.loads(tj.read_text("utf-8"))
+        analysis_path = _task_analysis_path(tid, task)
+        if analysis is not None:
+            if not isinstance(analysis, dict):
+                return jsonify(error="analysis must be an object"), 400
+            analysis_path.parent.mkdir(parents=True, exist_ok=True)
+            analysis_path.write_text(
+                json.dumps(analysis, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        try:
+            subprocess.run(
+                [str(PIPELINE_SH), "analyze", str(tj), "--confirm"],
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+            )
+        except subprocess.CalledProcessError as exc:
+            return jsonify(error="confirm failed", detail=exc.stderr or exc.stdout), 400
+        task = json.loads(tj.read_text("utf-8"))
+        return jsonify(ok=True, analysis=_load_analysis(tid, task), task=task)
+
     # -- Run pipeline --------------------------------------------------------
 
     @app.post("/api/tasks/<task_id>/run")
@@ -549,6 +628,8 @@ def create_app() -> Flask:
                         if run_state.get("step") != "refine":
                             run_state["log"].append("--- refining with LLM; this step can take several minutes ---")
                         run_state["step"] = "refine"
+                    elif "analysis" in ll or "analyz" in ll:
+                        run_state["step"] = "analyze"
                     elif "generat" in ll:
                         run_state["step"] = "generate"
                     elif "lint" in ll:

@@ -107,6 +107,7 @@ def build_generate_prompt(
     image_path: Optional[Path] = None,
     asset_images: Optional[List[Path]] = None,
     asset_manifest: Optional[dict] = None,
+    analysis: Optional[dict] = None,
 ) -> list:
     """Build the messages list for the LLM code generation call."""
     # Load system prompt template
@@ -136,6 +137,26 @@ def build_generate_prompt(
         html_content,
         "```",
     ]
+
+    if analysis:
+        user_parts.extend([
+            "",
+            "## Confirmed Page Analysis",
+            "The user has reviewed this analysis before generation. Treat interactions and states as implementation requirements, not optional notes.",
+            "Use LVGL native widgets and event callbacks for every listed interaction. At minimum, implement visible pressed/checked/selected/value state changes locally even when no backend action exists.",
+            "```json",
+            json.dumps({
+                "page_type": analysis.get("page_type"),
+                "contains_images": analysis.get("contains_images"),
+                "validation_mode": analysis.get("validation_mode"),
+                "elements": analysis.get("elements", []),
+                "interactions": analysis.get("interactions", []),
+                "states": analysis.get("states", []),
+                "layout_notes": analysis.get("layout_notes"),
+                "risk_notes": analysis.get("risk_notes", []),
+            }, indent=2, ensure_ascii=False),
+            "```",
+        ])
 
     if asset_manifest and asset_manifest.get("assets"):
         user_parts.extend([
@@ -304,10 +325,13 @@ def main() -> int:
                     asset_images.append(f)
     asset_manifest_path = task_path.parent / "generated" / "asset_manifest.json"
     asset_manifest = load_json(asset_manifest_path) if asset_manifest_path.is_file() else None
+    analysis_path = task_path.parent / task.get("analysis", {}).get("output", "analysis/analysis.json")
+    analysis = load_json(analysis_path) if analysis_path.is_file() else None
 
     messages = build_generate_prompt(
         page_id, page_name, html_content, profile, viewport, task["generation"],
         image_path=image_path, asset_images=asset_images, asset_manifest=asset_manifest,
+        analysis=analysis,
     )
     response = llm_client.chat(messages)
     c_code = llm_client.extract_code_block(response, "c")

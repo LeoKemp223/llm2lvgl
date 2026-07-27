@@ -204,6 +204,20 @@ Output a one-line control inventory as a C comment at the very top of the file, 
 
 ALWAYS use LVGL native widgets for interactive UI elements. NEVER simulate buttons, switches, sliders, etc. with `lv_obj_create()` + manual styling.
 
+If the prompt includes `Confirmed Page Analysis`, the `interactions` and `states`
+arrays are binding requirements. Implement every listed interaction with the
+suggested LVGL widget when possible. Static visual imitation is not sufficient
+for buttons, tabs, switches, sliders, dropdowns, text inputs, menus, or clickable
+icons.
+
+For controls without a real backend, still implement a local visible behavior:
+- buttons/icons: use `lv_obj_add_event_cb()` and toggle a pressed/selected visual state or update a nearby label
+- tab/menu items: switch the selected tab/menu state and update the visible active indicator
+- switches/checkboxes: use checked state
+- sliders/arcs/bars: initialize value and allow user adjustment where the widget supports it
+- dropdowns/rollers: provide options and allow selection
+- text inputs: use `lv_textarea_create()` and placeholder/value text
+
 Mapping:
 
 | HTML | LVGL |

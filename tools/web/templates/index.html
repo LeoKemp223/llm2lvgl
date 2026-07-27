@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="llm2lvgl enterprise code generation console for LVGL page delivery.">
   <title>llm2lvgl Codegen Console</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=6">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
 </head>
 <body>
 <a class="skip-link" href="#main-workspace">跳转到主工作区</a>
@@ -43,7 +43,7 @@
 
     <section class="sidebar-card">
       <div class="sidebar-card__label">Pipeline</div>
-      <div class="sidebar-card__value">HTML / Image / URL</div>
+      <div class="sidebar-card__value">HTML / 图片 / URL</div>
       <p>输入设计源，生成可移植 LVGL C 代码，并用 SDL 截图做视觉校验。</p>
     </section>
   </aside>
@@ -51,7 +51,7 @@
   <div class="workspace">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Enterprise generation console</p>
+        <p class="eyebrow">页面生成控制台</p>
         <h2>LVGL 页面代码生成平台</h2>
       </div>
       <div class="topbar-actions">
@@ -191,6 +191,7 @@
 
         <div class="steps" aria-label="任务步骤">
           <span class="step" data-step="init"><i></i>初始化</span>
+          <span class="step" data-step="analyze"><i></i>分析</span>
           <span class="step" data-step="generate"><i></i>生成</span>
           <span class="step" data-step="lint"><i></i>检查</span>
           <span class="step" data-step="build"><i></i>构建</span>
@@ -249,7 +250,7 @@
       <section class="panel history" id="history-panel" aria-labelledby="history-title">
         <div class="panel-header">
           <div>
-            <p class="section-label">Tasks</p>
+            <p class="section-label">任务</p>
             <h3 id="history-title">历史记录</h3>
           </div>
           <span class="panel-meta">最近任务</span>
@@ -263,6 +264,72 @@
 <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 <div class="lightbox" id="lightbox"><img id="lightbox-img" alt="放大查看"></div>
 
-<script src="{{ url_for('static', filename='app.js') }}?v=6"></script>
+<div class="modal" id="analysis-modal" aria-hidden="true">
+  <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="analysis-title">
+    <div class="modal-header">
+      <div>
+        <p class="section-label">页面分析</p>
+        <h3 id="analysis-title">确认页面分析结果</h3>
+      </div>
+      <button class="modal-close" id="analysis-cancel-btn" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="analysis-summary" id="analysis-summary"></div>
+    <div class="form-group">
+      <label for="analysis-validation-mode">验证方式</label>
+      <select id="analysis-validation-mode">
+        <option value="pixel">像素级对比</option>
+        <option value="manual_review">人工审查</option>
+        <option value="layout_semantic">语义布局校验</option>
+        <option value="hybrid">混合校验</option>
+      </select>
+      <p class="field-hint">包含图片、照片或复杂位图时，建议不要使用整屏像素级对比。</p>
+    </div>
+    <div class="analysis-elements" id="analysis-elements"></div>
+    <div class="analysis-elements" id="analysis-interactions"></div>
+    <div class="analysis-elements" id="analysis-states"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="analysis-edit-btn" type="button">应用当前验证方式</button>
+      <button class="btn btn-primary" id="analysis-confirm-btn" type="button">确认并继续</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="target-modal" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-sm" role="dialog" aria-modal="true" aria-labelledby="target-title">
+    <div class="modal-header">
+      <div>
+        <p class="section-label">目标平台</p>
+        <h3 id="target-title">确认目标平台与分辨率</h3>
+      </div>
+      <button class="modal-close" id="target-cancel-btn" type="button" aria-label="关闭">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <p class="analysis-notes" id="target-infer-note">已根据上传内容推断分辨率，请确认后继续。</p>
+    <div class="form-group">
+      <label for="target-profile-name">平台名称</label>
+      <input type="text" id="target-profile-name" placeholder="自定义平台">
+    </div>
+    <div class="profile-resolution">
+      <div class="form-group">
+        <label for="target-width">宽度 (px)</label>
+        <input type="number" id="target-width" min="100" max="4096" inputmode="numeric">
+      </div>
+      <span class="resolution-x" aria-hidden="true">×</span>
+      <div class="form-group">
+        <label for="target-height">高度 (px)</label>
+        <input type="number" id="target-height" min="100" max="4096" inputmode="numeric">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" id="target-use-current-btn" type="button">使用当前表单配置</button>
+      <button class="btn btn-primary" id="target-confirm-btn" type="button">确认并创建任务</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}?v=9"></script>
 </body>
 </html>

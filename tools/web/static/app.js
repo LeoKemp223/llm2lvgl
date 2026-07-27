@@ -5,9 +5,10 @@
   const $ = (s, el) => (el || document).querySelector(s);
   const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
 
-  const STEPS = ["init", "generate", "lint", "build", "validate", "refine", "export"];
+  const STEPS = ["init", "analyze", "generate", "lint", "build", "validate", "refine", "export"];
   const STEP_LABELS = {
     init: "初始化",
+    analyze: "分析",
     generate: "生成",
     lint: "检查",
     build: "构建",
@@ -22,6 +23,8 @@
   let profilesData = [];
   let htmlFiles = [];
   let imageFiles = [];
+  let pendingAnalysis = null;
+  let pendingTargetContext = null;
 
   async function init() {
     bindStaticEvents();
@@ -43,6 +46,12 @@
 
     $("#start-btn").addEventListener("click", onStart);
     $("#stop-btn").addEventListener("click", onStop);
+    $("#analysis-confirm-btn").addEventListener("click", onConfirmAnalysis);
+    $("#analysis-edit-btn").addEventListener("click", applyAnalysisMode);
+    $("#analysis-cancel-btn").addEventListener("click", cancelAnalysis);
+    $("#target-confirm-btn").addEventListener("click", onConfirmTarget);
+    $("#target-use-current-btn").addEventListener("click", useCurrentTargetConfig);
+    $("#target-cancel-btn").addEventListener("click", cancelTargetConfirm);
     $("#save-settings-btn").addEventListener("click", saveSettings);
     ["custom-profile-name", "custom-width", "custom-height"].forEach((id) => {
       const el = document.getElementById(id);
@@ -198,9 +207,11 @@
   function setupDropZones() {
     setupDropZone("html-drop-zone", "html-file", "html-file-list", (files) => {
       htmlFiles = files;
+      inferTargetFromFiles("html", files);
     }, htmlFileRole);
     setupDropZone("image-drop-zone", "image-file", "image-file-list", (files) => {
       imageFiles = files;
+      inferTargetFromFiles("image", files);
     }, imageFileRole);
   }
 
@@ -286,7 +297,7 @@
     setDownloadEnabled(false);
     stopRecoveryPolling();
 
-    const validation = validateAndBuildForm();
+    const validation = await validateAndBuildForm();
     if (!validation.ok) {
       showNotice(validation.error, "error");
       showToast(validation.error, "error");
@@ -295,12 +306,19 @@
       return;
     }
 
+    pendingTargetContext = validation;
+    showTargetModal(validation.target);
+  }
+
+  async function createAndAnalyzeTask(validation) {
+    if (!validation || !validation.ok) return;
+
     setRunningState(true);
     resetProgress();
     resetResults();
     $(".log-box").textContent = "";
     $(".log-box").classList.add("visible");
-    appendLog("Preparing task payload...");
+    appendLog("正在准备任务参数...");
 
     try {
       let res = await fetch("/api/tasks", { method: "POST", body: validation.formData });
@@ -309,7 +327,45 @@
 
       currentTaskId = data.task_id;
       setTaskContext(currentTaskId);
-      appendLog(`Task created: ${currentTaskId}`);
+      appendLog(`任务已创建：${currentTaskId}`);
+
+      updateSteps("analyze");
+      setGlobalStatus("分析中", "running");
+      appendLog("正在分析页面结构和验证方式...");
+      res = await fetch(`/api/tasks/${currentTaskId}/analyze`, { method: "POST" });
+      data = await safeJson(res);
+      if (!res.ok) throw new Error(data.error || data.detail || "页面分析失败，请检查模型设置后重试");
+      if (data.log) data.log.split(/\r?\n/).filter(Boolean).forEach(appendLog);
+
+      pendingAnalysis = data.analysis || {};
+      showAnalysisModal(pendingAnalysis);
+      setAwaitingConfirmationState();
+      showNotice("请确认页面分析结果，确认后继续生成。", "success");
+    } catch (e) {
+      appendLog("ERROR: " + e.message);
+      markStepFailed();
+      setRunningState(false);
+      setGlobalStatus("失败", "failed");
+      showNotice(e.message, "error");
+      showToast(e.message, "error");
+      loadHistory();
+    }
+  }
+
+  async function onConfirmAnalysis() {
+    if (!currentTaskId || !pendingAnalysis) return;
+    applyAnalysisMode();
+    closeAnalysisModal();
+    appendLog("用户已确认页面分析结果。");
+    setRunningState(true);
+    try {
+      let res = await fetch(`/api/tasks/${currentTaskId}/analysis/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis: pendingAnalysis }),
+      });
+      let data = await safeJson(res);
+      if (!res.ok) throw new Error(data.error || data.detail || "确认分析失败");
 
       res = await fetch(`/api/tasks/${currentTaskId}/run`, { method: "POST" });
       data = await safeJson(res);
@@ -328,7 +384,23 @@
     }
   }
 
-  function validateAndBuildForm() {
+  function applyAnalysisMode() {
+    if (!pendingAnalysis) return;
+    pendingAnalysis.validation_mode = $("#analysis-validation-mode").value;
+    pendingAnalysis.confirmed = true;
+    renderAnalysisSummary(pendingAnalysis);
+  }
+
+  function cancelAnalysis() {
+    closeAnalysisModal();
+    appendLog("--- 等待用户确认页面分析结果 ---");
+    setRunningState(false);
+    setGlobalStatus("待确认");
+    showNotice("任务已创建，尚未开始生成。", "success");
+    loadHistory();
+  }
+
+  async function validateAndBuildForm() {
     clearFieldErrors();
     const activeTab = $(".tab-btn.active").dataset.tab;
     const profile = $("#profile-select").value;
@@ -385,11 +457,208 @@
       fd.append("url", url);
     }
 
-    return { ok: true, formData: fd };
+    const target = await inferTargetForCurrentInput(activeTab);
+    return { ok: true, formData: fd, target };
+  }
+
+  async function onConfirmTarget() {
+    if (!pendingTargetContext) return;
+    const width = parseInt($("#target-width").value, 10);
+    const height = parseInt($("#target-height").value, 10);
+    const name = $("#target-profile-name").value.trim() || `${width}x${height}`;
+    if (!width || !height || width < 100 || height < 100) {
+      showToast("请输入有效的目标分辨率，宽高均不小于 100", "error");
+      return;
+    }
+    applyCustomTarget(name, width, height);
+    const fd = pendingTargetContext.formData;
+    fd.set("profile", "__custom__");
+    fd.set("custom_name", name);
+    fd.set("custom_width", String(width));
+    fd.set("custom_height", String(height));
+    closeTargetModal();
+    const validation = pendingTargetContext;
+    pendingTargetContext = null;
+    await createAndAnalyzeTask(validation);
+  }
+
+  function useCurrentTargetConfig() {
+    const current = currentFormTarget();
+    $("#target-profile-name").value = current.name;
+    $("#target-width").value = current.width;
+    $("#target-height").value = current.height;
+    $("#target-infer-note").textContent = "已载入当前表单中的目标平台配置，请确认后继续。";
+  }
+
+  function cancelTargetConfirm() {
+    closeTargetModal();
+    pendingTargetContext = null;
+    setRunningState(false);
+    setGlobalStatus("就绪");
   }
 
   function invalid(targetId, error) {
     return { ok: false, error, targetId };
+  }
+
+  async function inferTargetFromFiles(sourceType, files) {
+    try {
+      const target = await inferTargetFromInput(sourceType, files);
+      if (!target) return;
+      applyCustomTarget(target.name, target.width, target.height);
+      showNotice(`已根据上传内容推断目标分辨率：${target.width}x${target.height}，开始前仍可确认修改。`, "success");
+    } catch (e) {
+      showToast("分辨率推断失败: " + e.message, "error");
+    }
+  }
+
+  async function inferTargetForCurrentInput(activeTab) {
+    if (activeTab === "html") {
+      const files = htmlFiles.length ? htmlFiles : Array.from($("#html-file").files || []);
+      return await inferTargetFromInput("html", files);
+    }
+    if (activeTab === "image") {
+      const files = imageFiles.length ? imageFiles : Array.from($("#image-file").files || []);
+      return await inferTargetFromInput("image", files);
+    }
+    const current = currentFormTarget();
+    return {
+      ...current,
+      source: "当前表单",
+      note: "远程 URL 无法在创建前可靠读取实际渲染尺寸，请确认目标平台分辨率。",
+    };
+  }
+
+  async function inferTargetFromInput(sourceType, files) {
+    if (sourceType === "image" && files && files[0]) {
+      const size = await imageSize(files[0]);
+      return {
+        name: `上传图片 ${size.width}x${size.height}`,
+        width: size.width,
+        height: size.height,
+        source: "上传图片",
+        note: "已读取主图原始像素尺寸。",
+      };
+    }
+
+    if (sourceType === "html" && files && files.length) {
+      const mainHtml = files.find((f) => /\.html?$/i.test(f.name));
+      if (mainHtml) {
+        const text = await mainHtml.text();
+        const parsed = parseHtmlViewportSize(text);
+        if (parsed) {
+          return {
+            name: `HTML 页面 ${parsed.width}x${parsed.height}`,
+            width: parsed.width,
+            height: parsed.height,
+            source: "HTML 文件",
+            note: parsed.note,
+          };
+        }
+      }
+    }
+
+    const current = currentFormTarget();
+    return {
+      ...current,
+      source: "当前表单",
+      note: "未从上传内容中找到明确尺寸，已使用当前表单配置。",
+    };
+  }
+
+  function imageSize(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        URL.revokeObjectURL(url);
+        if (width && height) resolve({ width, height });
+        else reject(new Error("图片尺寸无效"));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("无法读取图片尺寸"));
+      };
+      img.src = url;
+    });
+  }
+
+  function parseHtmlViewportSize(html) {
+    const candidates = [
+      /<canvas[^>]*\bwidth=["']?(\d{2,5})["']?[^>]*\bheight=["']?(\d{2,5})["']?/i,
+      /<svg[^>]*\bwidth=["']?(\d{2,5})["']?[^>]*\bheight=["']?(\d{2,5})["']?/i,
+      /<(?:html|body|main|section|div)[^>]*(?:id|class)=["'][^"']*(?:app|root|screen|page|viewport|container)[^"']*["'][^>]*style=["'][^"']*(?:width|min-width)\s*:\s*(\d{2,5})px[^"']*(?:height|min-height)\s*:\s*(\d{2,5})px/i,
+      /<(?:html|body|main|section|div)[^>]*style=["'][^"']*(?:width|min-width)\s*:\s*(\d{2,5})px[^"']*(?:height|min-height)\s*:\s*(\d{2,5})px/i,
+      /(?:html|body|#app|#root|\.screen|\.page|\.viewport|\.container)\s*\{[^}]*(?:width|min-width)\s*:\s*(\d{2,5})px[^}]*(?:height|min-height)\s*:\s*(\d{2,5})px/i,
+    ];
+    for (let i = 0; i < candidates.length; i++) {
+      const m = html.match(candidates[i]);
+      if (!m) continue;
+      let width = parseInt(m[1], 10);
+      let height = parseInt(m[2], 10);
+      if (width >= 100 && height >= 100) {
+        return { width, height, note: "已从 HTML/CSS 中识别页面宽高。" };
+      }
+    }
+    const viewport = html.match(/<meta[^>]+name=["']viewport["'][^>]+content=["']([^"']+)["']/i);
+    if (viewport) {
+      const widthMatch = viewport[1].match(/width\s*=\s*(\d{2,5})/i);
+      const heightMatch = viewport[1].match(/height\s*=\s*(\d{2,5})/i);
+      if (widthMatch && heightMatch) {
+        const width = parseInt(widthMatch[1], 10);
+        const height = parseInt(heightMatch[1], 10);
+        if (width >= 100 && height >= 100) {
+          return { width, height, note: "已从 viewport meta 中识别页面宽高。" };
+        }
+      }
+    }
+    return null;
+  }
+
+  function currentFormTarget() {
+    const sel = $("#profile-select");
+    if (sel.value === "__custom__") {
+      return {
+        name: $("#custom-profile-name").value.trim() || "自定义平台",
+        width: parseInt($("#custom-width").value, 10) || 480,
+        height: parseInt($("#custom-height").value, 10) || 480,
+      };
+    }
+    const p = profilesData.find((x) => x.file === sel.value);
+    return {
+      name: p ? p.name : "目标平台",
+      width: p && p.screen ? p.screen.width : 480,
+      height: p && p.screen ? p.screen.height : 480,
+    };
+  }
+
+  function applyCustomTarget(name, width, height) {
+    $("#profile-select").value = "__custom__";
+    $("#custom-profile").style.display = "block";
+    $("#custom-profile-name").value = name || `${width}x${height}`;
+    $("#custom-width").value = width;
+    $("#custom-height").value = height;
+    updateProfileSummary();
+  }
+
+  function showTargetModal(target) {
+    const current = target || currentFormTarget();
+    $("#target-profile-name").value = current.name || `${current.width}x${current.height}`;
+    $("#target-width").value = current.width || 480;
+    $("#target-height").value = current.height || 480;
+    $("#target-infer-note").textContent = current.note || "请确认目标平台分辨率，确认后再创建任务。";
+    const modal = $("#target-modal");
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    $("#target-confirm-btn").focus({ preventScroll: true });
+  }
+
+  function closeTargetModal() {
+    const modal = $("#target-modal");
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
   }
 
   async function onStop() {
@@ -546,6 +815,11 @@
       currentTaskId = taskId;
       syncProfileFromTask(data.task);
       setTaskContext(taskId, data.task);
+      if (data.analysis && data.task && data.task.analysis && data.task.analysis.confirmed === false) {
+        pendingAnalysis = data.analysis;
+        showAnalysisModal(pendingAnalysis);
+        showNotice("该任务已完成页面分析，确认后可继续生成。", "success");
+      }
       setDownloadEnabled(Boolean(data.artifacts && Object.values(data.artifacts).some(Boolean)));
 
       const setImg = (sel, name) => {
@@ -601,11 +875,30 @@
 
   function renderReport(report) {
     const passed = report.pass === true || report.passed === true;
+    if (report.manual_review_required) {
+      $("#report-summary").innerHTML = `
+      <div class="metric-grid">
+        <div class="metric-card">
+          <span class="metric-label">验证状态</span>
+          <span class="metric-value pass">待人工审查</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">验证方式</span>
+            <span class="metric-value">${escapeHtml(validationModeText(report.validation_mode || "manual_review"))}</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">页面类型</span>
+            <span class="metric-value">${escapeHtml(pageTypeText(report.analysis && report.analysis.page_type))}</span>
+          </div>
+        </div>
+      `;
+      return;
+    }
     $("#report-summary").innerHTML = `
       <div class="metric-grid">
         <div class="metric-card">
           <span class="metric-label">验证状态</span>
-          <span class="metric-value ${passed ? "pass" : "fail"}">${passed ? "PASS" : "FAIL"}</span>
+          <span class="metric-value ${passed ? "pass" : "fail"}">${passed ? "通过" : "未通过"}</span>
         </div>
         <div class="metric-card">
           <span class="metric-label">Diff Ratio</span>
@@ -630,6 +923,92 @@
     $("#code-block").textContent = "";
     $("#code-block").classList.remove("visible");
     $(".code-toggle").textContent = "查看生成代码";
+  }
+
+  function showAnalysisModal(analysis) {
+    pendingAnalysis = analysis || {};
+    $("#analysis-validation-mode").value = pendingAnalysis.validation_mode || "manual_review";
+    renderAnalysisSummary(pendingAnalysis);
+    renderAnalysisElements(pendingAnalysis.elements || []);
+    renderAnalysisInteractions(pendingAnalysis.interactions || []);
+    renderAnalysisStates(pendingAnalysis.states || []);
+    const modal = $("#analysis-modal");
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    $("#analysis-confirm-btn").focus({ preventScroll: true });
+  }
+
+  function closeAnalysisModal() {
+    const modal = $("#analysis-modal");
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function renderAnalysisSummary(analysis) {
+    const containsImages = analysis.contains_images ? "是" : "否";
+    const risks = Array.isArray(analysis.risk_notes) && analysis.risk_notes.length
+      ? analysis.risk_notes.slice(0, 4).map((x) => `<li>${escapeHtml(localizeAnalysisText(x))}</li>`).join("")
+      : "<li>暂无额外风险提示</li>";
+    const layoutNotes = Array.isArray(analysis.layout_notes)
+      ? analysis.layout_notes.map(localizeAnalysisText).join(" ")
+      : localizeAnalysisText(analysis.layout_notes || "暂无布局备注");
+    $("#analysis-summary").innerHTML = `
+      <div class="metric-grid analysis-metrics">
+        <div class="metric-card">
+          <span class="metric-label">页面类型</span>
+          <span class="metric-value">${escapeHtml(pageTypeText(analysis.page_type))}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">包含图片</span>
+          <span class="metric-value">${containsImages}</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">推荐验证</span>
+          <span class="metric-value">${escapeHtml(validationModeText(analysis.validation_mode))}</span>
+        </div>
+      </div>
+      <p class="analysis-notes">${escapeHtml(layoutNotes)}</p>
+      <ul class="analysis-risks">${risks}</ul>
+    `;
+  }
+
+  function renderAnalysisElements(elements) {
+    const list = elements.slice(0, 24).map((el) => `
+      <li>
+        <span>${escapeHtml(elementTypeText(el.type))}</span>
+        <strong>${escapeHtml(localizeAnalysisText(el.content || el.role || ""))}</strong>
+        <em>${escapeHtml(priorityText(el.priority))}</em>
+      </li>
+    `).join("");
+    $("#analysis-elements").innerHTML = list
+      ? `<h4>识别元素</h4><ul>${list}</ul>`
+      : `<div class="empty-state"><strong>未识别到明确元素</strong><span>仍可确认后继续生成。</span></div>`;
+  }
+
+  function renderAnalysisInteractions(interactions) {
+    const list = interactions.slice(0, 32).map((item) => `
+      <li>
+        <span>${escapeHtml(interactionTypeText(item.type))}</span>
+        <strong>${escapeHtml(localizeAnalysisText(item.label || item.role || item.expected_behavior || ""))}</strong>
+        <em>${escapeHtml(widgetText(item.lvgl_widget))}</em>
+      </li>
+    `).join("");
+    $("#analysis-interactions").innerHTML = list
+      ? `<h4>交互控件</h4><ul>${list}</ul>`
+      : `<div class="empty-state"><strong>未识别到交互控件</strong><span>如页面中有按键、滑动、菜单或图标点击，请返回调整输入或后续手动补充。</span></div>`;
+  }
+
+  function renderAnalysisStates(states) {
+    const list = states.slice(0, 20).map((item) => `
+      <li>
+        <span>${escapeHtml(localizeAnalysisText(item.name || "状态"))}</span>
+        <strong>${escapeHtml(localizeAnalysisText(item.description || item.value || ""))}</strong>
+        <em>${escapeHtml(priorityText(item.priority))}</em>
+      </li>
+    `).join("");
+    $("#analysis-states").innerHTML = list
+      ? `<h4>动态状态</h4><ul>${list}</ul>`
+      : "";
   }
 
   async function loadHistory() {
@@ -718,6 +1097,12 @@
     $("#start-btn").disabled = running;
     $("#stop-btn").style.display = running ? "inline-flex" : "none";
     setGlobalStatus(running ? "运行中" : "就绪", running ? "running" : "");
+  }
+
+  function setAwaitingConfirmationState() {
+    $("#start-btn").disabled = true;
+    $("#stop-btn").style.display = "none";
+    setGlobalStatus("待确认");
   }
 
   function setGlobalStatus(text, state) {
@@ -817,7 +1202,7 @@
 
   function fileKind(name) {
     const ext = (name.split(".").pop() || "").toUpperCase();
-    if (!ext || ext.length > 4) return "FILE";
+    if (!ext || ext.length > 4) return "文件";
     return ext;
   }
 
@@ -834,6 +1219,15 @@
     return Number.isFinite(n) ? n.toFixed(digits) : "--";
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   function statusText(status) {
     return {
       idle: "待机",
@@ -847,10 +1241,148 @@
   function sourceTypeText(sourceType) {
     return {
       html: "HTML",
-      image: "Image",
+      image: "图片",
       url: "URL",
-      reference_only: "Reference",
-    }[sourceType] || "Unknown";
+      reference_only: "参考图",
+    }[sourceType] || "未知";
+  }
+
+  function pageTypeText(value) {
+    return {
+      text_controls: "文字与控件",
+      image_heavy: "图片为主",
+      mixed: "图文混合",
+      reference_only: "仅参考图",
+    }[value] || value || "--";
+  }
+
+  function validationModeText(value) {
+    return {
+      pixel: "像素级对比",
+      layout_semantic: "语义布局校验",
+      hybrid: "混合校验",
+      manual_review: "人工审查",
+    }[value] || value || "--";
+  }
+
+  function priorityText(value) {
+    return {
+      high: "高",
+      medium: "中",
+      low: "低",
+    }[value] || value || "中";
+  }
+
+  function elementTypeText(value) {
+    return {
+      text: "文本",
+      button: "按钮",
+      image: "图片",
+      icon: "图标",
+      icon_button: "图标按钮",
+      floating_button: "悬浮按钮",
+      floating_action_button: "悬浮按钮",
+      card: "卡片",
+      container: "容器",
+      panel: "面板",
+      tab_bar: "标签栏",
+      tab_item: "标签项",
+      scrollbar: "滚动条",
+      input: "输入框",
+      select: "选择框",
+      textarea: "文本输入",
+      h1: "标题",
+      h2: "小标题",
+      h3: "小标题",
+      p: "段落",
+      a: "链接",
+      label: "标签",
+    }[value] || value || "元素";
+  }
+
+  function interactionTypeText(value) {
+    return {
+      button: "按钮",
+      icon_button: "图标按钮",
+      tab: "标签切换",
+      menu_item: "菜单项",
+      dropdown: "下拉菜单",
+      switch: "开关",
+      slider: "滑块",
+      checkbox: "复选框",
+      radio: "单选项",
+      text_input: "文本输入",
+      link_button: "链接按钮",
+      gesture_area: "手势区域",
+      carousel: "轮播",
+      modal_trigger: "弹窗入口",
+      back_button: "返回按钮",
+      next_button: "下一步按钮",
+    }[value] || elementTypeText(value);
+  }
+
+  function widgetText(value) {
+    return {
+      lv_button: "按钮控件",
+      lv_switch: "开关控件",
+      lv_slider: "滑块控件",
+      lv_dropdown: "下拉控件",
+      lv_checkbox: "复选框控件",
+      lv_textarea: "文本输入控件",
+      lv_arc: "弧形控件",
+      lv_roller: "滚轮控件",
+      lv_bar: "进度条控件",
+    }[value] || value || "待确认";
+  }
+
+  function localizeAnalysisText(value) {
+    const text = String(value || "");
+    const exact = {
+      "Heuristic analysis based on HTML tags and uploaded asset files.": "已根据 HTML 标签和上传资源文件完成启发式分析。",
+      "Image or asset content is not suitable for strict whole-screen pixel diff.": "页面包含图片或素材内容，不适合使用严格的整屏像素级对比。",
+      "top navigation with active Profile tab": "顶部导航栏，Profile 标签处于激活状态",
+      "active navigation tab": "当前激活的导航标签",
+      "inactive navigation tab": "未激活的导航标签",
+      "main content container": "主内容容器",
+      "profile name heading": "个人资料名称标题",
+      "profile description": "个人资料描述",
+      "primary action": "主要操作",
+      "secondary action": "次要操作",
+      "primary action button": "主要操作按钮",
+      "secondary action button": "次要操作按钮",
+      "user avatar": "用户头像",
+      "profile avatar": "个人资料头像",
+      "contact method icon": "联系方式图标",
+      "email address": "邮箱地址",
+      "phone number": "电话号码",
+      "vertical scroll indicator": "垂直滚动指示器",
+      "page scroll position": "页面滚动位置",
+      "floating quick action": "悬浮快捷操作",
+      "floating action button": "悬浮操作按钮",
+    };
+    if (exact[text]) return exact[text];
+    return text
+      .replace(/\bViewport\b/g, "视口")
+      .replace(/\blayout\b/gi, "布局")
+      .replace(/\bprofile card\b/gi, "个人资料卡片")
+      .replace(/\bProfile summary card\b/g, "个人资料摘要卡片")
+      .replace(/\bCircular portrait photo\b/gi, "圆形头像照片")
+      .replace(/\bcircular portrait photo\b/gi, "圆形头像照片")
+      .replace(/\bemail envelope\b/gi, "邮箱图标")
+      .replace(/\bphone handset\b/gi, "电话图标")
+      .replace(/\bvertical scroll indicator\b/gi, "垂直滚动指示器")
+      .replace(/\bdroplet icon\b/gi, "水滴图标")
+      .replace(/\bdroplet\/flame icon\b/gi, "水滴/火焰图标")
+      .replace(/\bbutton\b/gi, "按钮")
+      .replace(/\bcard\b/gi, "卡片")
+      .replace(/\bcontainer\b/gi, "容器")
+      .replace(/\bimage\b/gi, "图片")
+      .replace(/\bicon\b/gi, "图标")
+      .replace(/\bactive\b/gi, "激活")
+      .replace(/\binactive\b/gi, "未激活")
+      .replace(/\bhigh\b/gi, "高")
+      .replace(/\bmedium\b/gi, "中")
+      .replace(/\blow\b/gi, "低");
   }
 
   function updateProfileSummary() {

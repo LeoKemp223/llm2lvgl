@@ -140,6 +140,33 @@
         }
       }
     },
+    "analysis": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "output",
+        "require_user_confirm",
+        "confirmed"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "output": {
+          "type": "string",
+          "minLength": 1
+        },
+        "require_user_confirm": {
+          "type": "boolean"
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "confirmed_at": {
+          "type": "string"
+        }
+      }
+    },
     "reference": {
       "type": "object",
       "required": [
@@ -165,6 +192,15 @@
         "require_size_match"
       ],
       "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "pixel",
+            "layout_semantic",
+            "hybrid",
+            "manual_review"
+          ]
+        },
         "pixel_diff_threshold": {
           "type": "integer",
           "minimum": 0,

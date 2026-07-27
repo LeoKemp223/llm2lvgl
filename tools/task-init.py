@@ -66,11 +66,18 @@ def build_task_payload(
             "allow_freetype": False,
             "allow_filesystem_assets": False,
         },
+        "analysis": {
+            "enabled": True,
+            "output": "analysis/analysis.json",
+            "require_user_confirm": True,
+            "confirmed": False,
+        },
         "reference": {
             "image": "reference/reference.png",
             "render_from_html": source_type != "image",
         },
         "validation": {
+            "mode": "manual_review" if source_type == "image" else "pixel",
             "pixel_diff_threshold": 16,
             "max_diff_ratio": 0.18,
             "max_mean_abs_diff": 22.0,

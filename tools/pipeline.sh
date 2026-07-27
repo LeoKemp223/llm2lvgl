@@ -44,6 +44,8 @@ Commands:
                  Run the bundled demo task end-to-end and write artifacts under workspace/tasks/demo_v1/
   init <task-dir> [--page-id ID] [--page-name NAME] [--profile PATH]
                  Create a task workspace and seed task.json
+  analyze <task.json> [--confirm]
+                 Analyze input elements and validation strategy before generation
   draft-html <task.json>
                  Draft HTML from image input for image-based tasks
   generate <task.json>
@@ -89,6 +91,18 @@ case "${cmd}" in
     init)
         shift
         python3 "${SCRIPT_DIR}/task-init.py" "$@"
+        ;;
+    analyze)
+        task_json="${2:-}"
+        if [[ -z "${task_json}" ]]; then
+            usage
+            exit 1
+        fi
+        if [[ "${3:-}" == "--confirm" ]]; then
+            python3 "${SCRIPT_DIR}/analyze-page.py" --task "${task_json}" --confirm
+        else
+            python3 "${SCRIPT_DIR}/analyze-page.py" --task "${task_json}"
+        fi
         ;;
     draft-html)
         task_json="${2:-}"
@@ -168,6 +182,22 @@ print((Path(sys.argv[2]).resolve() / task_key).as_posix())
         fi
 
         if [[ "$(task_is_legacy_compat "${task_json}")" == "false" ]]; then
+            python3 -c '
+import json
+import sys
+from pathlib import Path
+
+task_path = Path(sys.argv[1])
+task = json.loads(task_path.read_text(encoding="utf-8"))
+analysis = task.get("analysis", {})
+if analysis.get("enabled", False) and analysis.get("require_user_confirm", False):
+    output = task_path.parent / analysis.get("output", "analysis/analysis.json")
+    if not output.is_file():
+        raise SystemExit(f"Task requires analysis before run: {output}")
+    if not analysis.get("confirmed", False):
+        raise SystemExit("Task analysis must be confirmed before run.")
+' "${task_json}"
+
             if [[ "$(python3 -c '
 import json
 import sys
@@ -197,8 +227,17 @@ print((Path(sys.argv[1]).parent / t['generation']['output_c']).resolve())
 
         python3 "${SCRIPT_DIR}/portability-lint.py" --task "${task_json}"
 
-        # Render reference image from HTML input (needed for validation)
-        python3 "${SCRIPT_DIR}/render-html-ref.py" --task "${task_json}"
+        # Pixel validation needs an HTML-rendered reference. Image-heavy or
+        # manual-review tasks should not depend on a renderer.
+        if [[ "$(python3 -c '
+import json
+import sys
+from pathlib import Path
+task = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(task.get("validation", {}).get("mode", "pixel"))
+' "${task_json}")" == "pixel" ]]; then
+            python3 "${SCRIPT_DIR}/render-html-ref.py" --task "${task_json}"
+        fi
 
         set +e
         python3 "${SCRIPT_DIR}/task-run.py" --task "${task_json}"

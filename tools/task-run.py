@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -87,6 +88,53 @@ def make_legacy_compat_task(task_path: Path, task: dict) -> Path:
     return compat_path
 
 
+def write_manual_review_report(
+    task_path: Path,
+    task: dict,
+    current_path: Path,
+    full_path: Path,
+    diff_path: Path,
+    report_path: Path,
+    reference_path: Path,
+    validation_mode: str,
+) -> None:
+    analysis_path = resolve(task_path, task.get("analysis", {}).get("output", "analysis/analysis.json"))
+    analysis = {}
+    if analysis_path.is_file():
+        try:
+            analysis = json.loads(analysis_path.read_text("utf-8"))
+        except (json.JSONDecodeError, OSError):
+            analysis = {}
+
+    report = {
+        "task": task["page_id"],
+        "page_name": task["page_name"],
+        "validation_mode": validation_mode,
+        "pass": True,
+        "completion_met": True,
+        "manual_review_required": True,
+        "failure_reason": None,
+        "reference_image": str(reference_path) if reference_path.exists() else None,
+        "current_image": str(current_path),
+        "full_image": str(full_path) if full_path.exists() else None,
+        "diff_image": str(diff_path) if diff_path.exists() else None,
+        "analysis": {
+            "page_type": analysis.get("page_type"),
+            "contains_images": analysis.get("contains_images"),
+            "validation_mode": analysis.get("validation_mode"),
+            "risk_notes": analysis.get("risk_notes", []),
+        },
+        "review_notes": [
+            "Strict whole-screen pixel diff was skipped because this page was classified as image-heavy, mixed, semantic, or manual-review.",
+            "Review current.png/full.png visually and use the analysis result to judge image fidelity.",
+        ],
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+    }
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"Manual review report written: {report_path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run a workspace task against the current LVGL simulator bridge.")
     parser.add_argument("--task", required=True, help="Path to task.json")
@@ -102,6 +150,7 @@ def main() -> int:
     build_dir.mkdir(parents=True, exist_ok=True)
     cmd_env = task_env(task_path, task, build_dir)
     reference_path = resolve(task_path, task["reference"]["image"])
+    validation_mode = task.get("validation", {}).get("mode", "pixel")
 
     # For image-based tasks, use the source image as reference if no reference exists
     source_type = task.get("input", {}).get("source_type", "html")
@@ -125,7 +174,7 @@ def main() -> int:
                     shutil.copy2(str(src_img), str(reference_path))
                 print(f"参考图已设置: {src_img}")
 
-    if task["reference"].get("render_from_html", False) and (args.rerender_ref or not reference_path.exists()):
+    if validation_mode == "pixel" and task["reference"].get("render_from_html", False) and (args.rerender_ref or not reference_path.exists()):
         # Check if any HTML renderer is available before attempting render
         _renderers = ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "wkhtmltoimage"]
         if any(shutil.which(r) for r in _renderers):
@@ -162,6 +211,20 @@ def main() -> int:
     run([str(TOOLS_DIR / "lvgl-runtime.sh"), "screenshot", str(current_path)], env=cmd_env)
     if not args.skip_full_screenshot:
         run([str(TOOLS_DIR / "lvgl-runtime.sh"), "screenshot-full", str(full_path)], env=cmd_env)
+
+    if validation_mode != "pixel":
+        write_manual_review_report(
+            task_path,
+            task,
+            current_path,
+            full_path,
+            diff_path,
+            report_path,
+            reference_path,
+            validation_mode,
+        )
+        print(f"Task run completed: {task_path} (status=0, validation_mode={validation_mode})")
+        return 0
 
     if not reference_path.exists():
         print("WARNING: No reference image available, skipping visual validation.", file=sys.stderr)

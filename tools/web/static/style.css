@@ -1183,6 +1183,142 @@ figcaption {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(17, 24, 28, 0.48);
+}
+
+.modal.open {
+  display: flex;
+}
+
+.modal-dialog {
+  width: min(760px, 100%);
+  max-height: min(760px, 92dvh);
+  overflow: auto;
+  padding: 1.15rem;
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.modal-dialog-sm {
+  width: min(520px, 100%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-close {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  color: var(--text-soft);
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.analysis-metrics {
+  margin-bottom: 0.8rem;
+}
+
+.analysis-notes {
+  margin: 0 0 0.7rem;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+}
+
+.analysis-risks {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--warning);
+  font-size: 0.84rem;
+}
+
+.analysis-elements {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.9rem;
+}
+
+.analysis-elements h4 {
+  margin: 0 0 0.6rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.analysis-elements ul {
+  display: grid;
+  gap: 0.4rem;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.analysis-elements li {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 72px;
+  gap: 0.6rem;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.4rem 0.55rem;
+  background: var(--panel-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+}
+
+.analysis-elements span,
+.analysis-elements em {
+  color: var(--muted);
+  font-style: normal;
+  font-family: var(--mono);
+}
+
+.analysis-elements strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
