@@ -1,0 +1,13 @@
+{
+  "task_id": "web_bd944f3c",
+  "page_id": "web_bd944f3c",
+  "page_name": "Web Bd944F3C",
+  "profile": "-2105x404",
+  "viewport": {
+    "width": 2105,
+    "height": 404
+  },
+  "driver": "image_to_html_v1+llm_gpt4o",
+  "output_c": "generated/web_bd944f3c_page.c",
+  "output_h": "generated/web_bd944f3c_page.h"
+}

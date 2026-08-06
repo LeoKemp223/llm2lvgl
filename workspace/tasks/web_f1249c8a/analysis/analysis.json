@@ -1,0 +1,480 @@
+{
+  "confirmed": true,
+  "contains_images": true,
+  "driver": "llm_v1",
+  "elements": [
+    {
+      "bbox_guess": {
+        "h": 662,
+        "w": 658,
+        "x": 18,
+        "y": 16
+      },
+      "content": "黑色设备外框和内嵌屏幕区域",
+      "priority": 1,
+      "role": "页面主体容器",
+      "type": "container"
+    },
+    {
+      "bbox_guess": {
+        "h": 532,
+        "w": 565,
+        "x": 66,
+        "y": 86
+      },
+      "content": "屏幕背景为海边岩石和天空照片",
+      "priority": 1,
+      "role": "背景图像",
+      "type": "image"
+    },
+    {
+      "bbox_guess": {
+        "h": 24,
+        "w": 91,
+        "x": 81,
+        "y": 91
+      },
+      "content": "室内26°C",
+      "priority": 2,
+      "role": "室内温度状态文本",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 57,
+        "w": 250,
+        "x": 89,
+        "y": 164
+      },
+      "content": "09 : 41",
+      "priority": 1,
+      "role": "当前时间显示",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 24,
+        "w": 126,
+        "x": 95,
+        "y": 229
+      },
+      "content": "3月15日 周四",
+      "priority": 2,
+      "role": "日期显示",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 26,
+        "w": 24,
+        "x": 438,
+        "y": 170
+      },
+      "content": "水滴图标",
+      "priority": 2,
+      "role": "湿度指标图标",
+      "type": "icon"
+    },
+    {
+      "bbox_guess": {
+        "h": 58,
+        "w": 111,
+        "x": 469,
+        "y": 163
+      },
+      "content": "65%",
+      "priority": 1,
+      "role": "空气湿度数值",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 24,
+        "w": 78,
+        "x": 507,
+        "y": 229
+      },
+      "content": "空气湿度",
+      "priority": 2,
+      "role": "湿度说明文本",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 27,
+        "w": 25,
+        "x": 548,
+        "y": 89
+      },
+      "content": "右上角设置图标",
+      "priority": 2,
+      "role": "系统设置入口图标",
+      "type": "icon"
+    },
+    {
+      "bbox_guess": {
+        "h": 23,
+        "w": 27,
+        "x": 584,
+        "y": 91
+      },
+      "content": "无线网络图标",
+      "priority": 2,
+      "role": "无线连接状态图标",
+      "type": "icon"
+    },
+    {
+      "bbox_guess": {
+        "h": 153,
+        "w": 519,
+        "x": 90,
+        "y": 282
+      },
+      "content": "空调控制卡片",
+      "priority": 1,
+      "role": "空调设备控制区域",
+      "type": "container"
+    },
+    {
+      "bbox_guess": {
+        "h": 70,
+        "w": 194,
+        "x": 113,
+        "y": 351
+      },
+      "content": "壁挂空调示意图",
+      "priority": 2,
+      "role": "空调设备图像",
+      "type": "image"
+    },
+    {
+      "bbox_guess": {
+        "h": 27,
+        "w": 71,
+        "x": 516,
+        "y": 301
+      },
+      "content": "三级风力",
+      "priority": 1,
+      "role": "当前风力等级文本",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 35,
+        "w": 67,
+        "x": 449,
+        "y": 367
+      },
+      "content": "25°C",
+      "priority": 1,
+      "role": "空调设定温度",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 135,
+        "w": 251,
+        "x": 90,
+        "y": 447
+      },
+      "content": "窗帘控制卡片",
+      "priority": 1,
+      "role": "窗帘设备控制区域",
+      "type": "container"
+    },
+    {
+      "bbox_guess": {
+        "h": 25,
+        "w": 48,
+        "x": 123,
+        "y": 478
+      },
+      "content": "窗帘",
+      "priority": 1,
+      "role": "窗帘设备名称",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 78,
+        "w": 96,
+        "x": 225,
+        "y": 475
+      },
+      "content": "窗帘开合示意图",
+      "priority": 2,
+      "role": "窗帘状态图像",
+      "type": "image"
+    },
+    {
+      "bbox_guess": {
+        "h": 135,
+        "w": 252,
+        "x": 357,
+        "y": 447
+      },
+      "content": "客厅吊灯控制卡片",
+      "priority": 1,
+      "role": "灯光设备控制区域",
+      "type": "container"
+    },
+    {
+      "bbox_guess": {
+        "h": 25,
+        "w": 93,
+        "x": 384,
+        "y": 478
+      },
+      "content": "客厅吊灯",
+      "priority": 1,
+      "role": "灯具设备名称",
+      "type": "text"
+    },
+    {
+      "bbox_guess": {
+        "h": 99,
+        "w": 85,
+        "x": 501,
+        "y": 463
+      },
+      "content": "吊灯发光示意图",
+      "priority": 2,
+      "role": "灯具状态图像",
+      "type": "image"
+    }
+  ],
+  "interactions": [
+    {
+      "bbox_guess": {
+        "h": 27,
+        "w": 25,
+        "x": 548,
+        "y": 89
+      },
+      "expected_behavior": "点击后进入系统设置页面或弹出设置面板",
+      "initial_state": "未按下",
+      "label": "系统设置",
+      "lvgl_widget": "lv_button",
+      "priority": 2,
+      "role": "打开系统设置",
+      "type": "icon_button"
+    },
+    {
+      "bbox_guess": {
+        "h": 35,
+        "w": 35,
+        "x": 113,
+        "y": 294
+      },
+      "expected_behavior": "点击后将空调模式切换为自动，并更新模式高亮状态",
+      "initial_state": "已选中，高亮蓝色",
+      "label": "自动模式",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换空调自动模式",
+      "type": "tab"
+    },
+    {
+      "bbox_guess": {
+        "h": 27,
+        "w": 30,
+        "x": 166,
+        "y": 299
+      },
+      "expected_behavior": "点击后将空调模式切换为制冷，并更新模式高亮状态",
+      "initial_state": "未选中",
+      "label": "制冷模式",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换空调制冷模式",
+      "type": "tab"
+    },
+    {
+      "bbox_guess": {
+        "h": 27,
+        "w": 29,
+        "x": 216,
+        "y": 299
+      },
+      "expected_behavior": "点击后显示空调设置项或切换到设置模式",
+      "initial_state": "未选中",
+      "label": "空调设置",
+      "lvgl_widget": "lv_button",
+      "priority": 2,
+      "role": "打开空调设置或更多参数",
+      "type": "tab"
+    },
+    {
+      "bbox_guess": {
+        "h": 24,
+        "w": 29,
+        "x": 270,
+        "y": 300
+      },
+      "expected_behavior": "点击后将空调模式切换为送风，并更新模式高亮状态",
+      "initial_state": "未选中",
+      "label": "送风模式",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换空调送风模式",
+      "type": "tab"
+    },
+    {
+      "bbox_guess": {
+        "h": 39,
+        "w": 91,
+        "x": 507,
+        "y": 294
+      },
+      "expected_behavior": "点击后循环或打开风力档位选择菜单",
+      "initial_state": "当前为三级风力",
+      "label": "三级风力",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "调整风力档位",
+      "type": "menu_item"
+    },
+    {
+      "bbox_guess": {
+        "h": 43,
+        "w": 42,
+        "x": 544,
+        "y": 361
+      },
+      "expected_behavior": "点击后关闭或开启空调，并同步温度、模式和设备图像状态",
+      "initial_state": "开启，橙色电源按钮",
+      "label": "空调电源",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换空调开关",
+      "type": "icon_button"
+    },
+    {
+      "bbox_guess": {
+        "h": 153,
+        "w": 519,
+        "x": 90,
+        "y": 282
+      },
+      "expected_behavior": "点击卡片空白区域后进入空调详情页或展开更多控制",
+      "initial_state": "可点击控制卡片",
+      "label": "空调卡片",
+      "lvgl_widget": "lv_button",
+      "priority": 2,
+      "role": "进入空调详细控制",
+      "type": "gesture_area"
+    },
+    {
+      "bbox_guess": {
+        "h": 43,
+        "w": 42,
+        "x": 124,
+        "y": 511
+      },
+      "expected_behavior": "点击后切换窗帘设备开关状态，并更新按钮颜色和窗帘图像状态",
+      "initial_state": "开启，橙色电源按钮",
+      "label": "窗帘电源",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换窗帘设备开关",
+      "type": "icon_button"
+    },
+    {
+      "bbox_guess": {
+        "h": 135,
+        "w": 251,
+        "x": 90,
+        "y": 447
+      },
+      "expected_behavior": "点击卡片空白区域后进入窗帘详情页或展开开合控制",
+      "initial_state": "可点击控制卡片",
+      "label": "窗帘卡片",
+      "lvgl_widget": "lv_button",
+      "priority": 2,
+      "role": "进入窗帘详细控制",
+      "type": "gesture_area"
+    },
+    {
+      "bbox_guess": {
+        "h": 43,
+        "w": 42,
+        "x": 386,
+        "y": 511
+      },
+      "expected_behavior": "点击后切换灯具开关状态，并更新按钮颜色和灯具发光状态",
+      "initial_state": "开启，绿色电源按钮",
+      "label": "客厅吊灯电源",
+      "lvgl_widget": "lv_button",
+      "priority": 1,
+      "role": "切换客厅吊灯开关",
+      "type": "icon_button"
+    },
+    {
+      "bbox_guess": {
+        "h": 135,
+        "w": 252,
+        "x": 357,
+        "y": 447
+      },
+      "expected_behavior": "点击卡片空白区域后进入灯光详情页或展开亮度控制",
+      "initial_state": "可点击控制卡片",
+      "label": "客厅吊灯卡片",
+      "lvgl_widget": "lv_button",
+      "priority": 2,
+      "role": "进入灯光详细控制",
+      "type": "gesture_area"
+    }
+  ],
+  "layout_notes": [
+    "画面是嵌入式智能家居面板，主要内容集中在屏幕内部，外侧黑色设备边框可作为参考背景或裁切掉。",
+    "屏幕内部使用暗色半透明卡片叠加在照片背景上，背景图在LVGL中需要作为位图资源处理。",
+    "顶部信息区为两列布局：左侧时间和日期，右侧湿度图标、湿度数值和说明文本。",
+    "空调卡片宽度最大，位于中部，内部上方为模式图标行，下方左侧为空调图像，右侧为温度和电源按钮。",
+    "底部两张设备卡片等宽排列，左侧窗帘，右侧客厅吊灯，卡片圆角较大但在LVGL中可用样式圆角模拟。",
+    "所有文字需要使用中文字体资源，数字时间和百分比字号明显大于其他文本。",
+    "图标多为白色或灰色线性图标，建议用LVGL符号、矢量图标字体或小位图资源实现。"
+  ],
+  "page_id": "web_f1249c8a",
+  "page_type": "mixed",
+  "risk_notes": [
+    "源类型为图像且包含真实照片背景和设备渲染图，不能只依赖语义布局验证，需要人工或截图对比确认。",
+    "背景照片、空调、窗帘和吊灯示意图属于位图或复杂图形资源，需要从设计资源中切图，否则像素还原风险较高。",
+    "模式图标和电源按钮有发光、阴影和高亮效果，低端LVGL硬件上可能需要简化阴影与渐变。",
+    "卡片透明度与背景照片叠加会影响可读性，需要在目标屏幕上验证对比度。",
+    "部分控件是否可点击只能从视觉推断，例如风力文本和整张设备卡片，交互语义需要产品确认。"
+  ],
+  "schema_version": 1,
+  "states": [
+    {
+      "description": "自动模式当前选中并显示蓝色高亮，其他模式为灰色未选中。",
+      "name": "空调模式选中状态"
+    },
+    {
+      "description": "空调当前为开启状态，电源按钮为橙色，显示设定温度25°C。",
+      "name": "空调电源状态"
+    },
+    {
+      "description": "当前风力为三级风力，点击后可能切换档位或打开档位菜单。",
+      "name": "风力档位状态"
+    },
+    {
+      "description": "窗帘当前为开启状态，电源按钮为橙色，图像显示部分开启的窗帘。",
+      "name": "窗帘电源状态"
+    },
+    {
+      "description": "客厅吊灯当前为开启状态，电源按钮为绿色，吊灯图像显示发光。",
+      "name": "客厅吊灯电源状态"
+    },
+    {
+      "description": "空调、窗帘和客厅吊灯卡片需要支持普通、按下和可能的详情展开状态。",
+      "name": "设备卡片按压状态"
+    },
+    {
+      "description": "点击设备卡片或设置入口后可能进入对应详情页或设置页。",
+      "name": "页面跳转状态"
+    }
+  ],
+  "task_id": "web_f1249c8a",
+  "validation_mode": "manual_review"
+}

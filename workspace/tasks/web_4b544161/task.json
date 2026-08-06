@@ -1,0 +1,67 @@
+{
+  "task_id": "web_4b544161",
+  "page_id": "web_4b544161",
+  "page_name": "Web 4B544161",
+  "input": {
+    "source_type": "image",
+    "html_entry": "input/index.html",
+    "image_entry": "input/source.png",
+    "assets_dir": "input/assets",
+    "notes_file": "input/notes.md"
+  },
+  "target": {
+    "profile": "../../../profiles/custom_-702x704.json",
+    "viewport": {
+      "width": 702,
+      "height": 704
+    },
+    "color_depth": 32,
+    "dpi": 160,
+    "language": "zh-CN"
+  },
+  "generation": {
+    "output_c": "generated/web_4b544161_page.c",
+    "output_h": "generated/web_4b544161_page.h",
+    "component_mode": "portable",
+    "allow_custom_draw": false,
+    "allow_freetype": false,
+    "allow_filesystem_assets": false
+  },
+  "analysis": {
+    "enabled": true,
+    "output": "analysis/analysis.json",
+    "require_user_confirm": true,
+    "confirmed": true,
+    "confirmed_at": "2026-07-27T00:12:49"
+  },
+  "reference": {
+    "image": "reference/reference.png",
+    "render_from_html": false
+  },
+  "validation": {
+    "mode": "layout_semantic",
+    "pixel_diff_threshold": 16,
+    "max_diff_ratio": 0.18,
+    "max_mean_abs_diff": 22.0,
+    "require_size_match": true
+  },
+  "export": {
+    "bundle_dir": "export/portable_bundle",
+    "include_assets": true,
+    "include_porting_md": true
+  },
+  "failure_policy": {
+    "max_iterations": 8,
+    "stop_on_build_error": true,
+    "stop_on_missing_reference": true,
+    "stop_on_validation_script_error": true,
+    "stop_on_portability_error": true
+  },
+  "compat": {
+    "legacy_page_flow_task": null
+  },
+  "notes": [
+    "Put the source screenshot under input/ and let the pipeline draft HTML from it.",
+    "Replace the simulator profile with the real board profile before export."
+  ]
+}
