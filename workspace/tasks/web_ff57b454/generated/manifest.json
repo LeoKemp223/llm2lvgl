@@ -1,0 +1,13 @@
+{
+  "task_id": "web_ff57b454",
+  "page_id": "web_ff57b454",
+  "page_name": "Web Ff57B454",
+  "profile": "-1704x774",
+  "viewport": {
+    "width": 1704,
+    "height": 774
+  },
+  "driver": "image_to_html_v1+llm_gpt4o",
+  "output_c": "generated/web_ff57b454_page.c",
+  "output_h": "generated/web_ff57b454_page.h"
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "task_id": "web_ff57b454",
+  "source_image": "input/source.png",
+  "source_size": [
+    1704,
+    774
+  ],
+  "viewport": {
+    "width": 1704,
+    "height": 774
+  },
+  "assets": [
+    {
+      "id": "01_device_shell",
+      "role": "device_shell",
+      "mode": "crop",
+      "path": "input/assets/generated/01_device_shell.png",
+      "source_box": [
+        28,
+        76,
+        1676,
+        698
+      ],
+      "viewport_box": [
+        28,
+        76,
+        1676,
+        698
+      ],
+      "size": [
+        1648,
+        622
+      ],
+      "avg_color": "#29292f"
+    }
+  ]
+}

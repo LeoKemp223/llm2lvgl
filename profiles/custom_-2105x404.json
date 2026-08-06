@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "id": "-2105x404",
+  "name": "上传图片 2105x404",
+  "screen": {
+    "width": 2105,
+    "height": 404,
+    "color_depth": 32,
+    "dpi": 160
+  },
+  "fonts": {
+    "allow_freetype": true,
+    "builtin_fonts": [
+      "lv_font_montserrat_14",
+      "lv_font_montserrat_24"
+    ],
+    "default_font": "lv_font_montserrat_14"
+  },
+  "assets": {
+    "allow_filesystem": true,
+    "allow_png": true,
+    "allow_jpg": true,
+    "max_asset_kb": 2048
+  },
+  "constraints": {
+    "allow_sdl_only_api": false,
+    "allow_snapshot_api_in_export": false
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "task_id": "web_f1249c8a",
+  "source_image": "input/source.png",
+  "source_size": [
+    702,
+    704
+  ],
+  "viewport": {
+    "width": 702,
+    "height": 704
+  },
+  "assets": [
+    {
+      "id": "01_device_shell",
+      "role": "device_shell",
+      "mode": "crop",
+      "path": "input/assets/generated/01_device_shell.png",
+      "source_box": [
+        20,
+        20,
+        668,
+        660
+      ],
+      "viewport_box": [
+        20,
+        20,
+        668,
+        660
+      ],
+      "size": [
+        648,
+        640
+      ],
+      "avg_color": "#363639"
+    },
+    {
+      "id": "02_top_display",
+      "role": "top_display",
+      "mode": "crop",
+      "path": "input/assets/generated/02_top_display.png",
+      "source_box": [
+        84,
+        99,
+        604,
+        238
+      ],
+      "viewport_box": [
+        84,
+        99,
+        604,
+        238
+      ],
+      "size": [
+        520,
+        139
+      ],
+      "avg_color": "#292a31"
+    },
+    {
+      "id": "03_control_panel",
+      "role": "control_panel",
+      "mode": "crop",
+      "path": "input/assets/generated/03_control_panel.png",
+      "source_box": [
+        84,
+        336,
+        604,
+        449
+      ],
+      "viewport_box": [
+        84,
+        336,
+        604,
+        449
+      ],
+      "size": [
+        520,
+        113
+      ],
+      "avg_color": "#605f62"
+    },
+    {
+      "id": "04_region_4",
+      "role": "region_4",
+      "mode": "crop",
+      "path": "input/assets/generated/04_region_4.png",
+      "source_box": [
+        111,
+        349,
+        308,
+        427
+      ],
+      "viewport_box": [
+        111,
+        349,
+        308,
+        427
+      ],
+      "size": [
+        197,
+        78
+      ],
+      "avg_color": "#b7c1d9"
+    },
+    {
+      "id": "05_bottom_card",
+      "role": "bottom_card",
+      "mode": "crop",
+      "path": "input/assets/generated/05_bottom_card.png",
+      "source_box": [
+        84,
+        441,
+        348,
+        608
+      ],
+      "viewport_box": [
+        84,
+        441,
+        348,
+        608
+      ],
+      "size": [
+        264,
+        167
+      ],
+      "avg_color": "#434244"
+    },
+    {
+      "id": "06_bottom_card",
+      "role": "bottom_card",
+      "mode": "crop",
+      "path": "input/assets/generated/06_bottom_card.png",
+      "source_box": [
+        340,
+        441,
+        604,
+        608
+      ],
+      "viewport_box": [
+        340,
+        441,
+        604,
+        608
+      ],
+      "size": [
+        264,
+        167
+      ],
+      "avg_color": "#494c49"
+    },
+    {
+      "id": "07_decorative_detail",
+      "role": "decorative_detail",
+      "mode": "crop",
+      "path": "input/assets/generated/07_decorative_detail.png",
+      "source_box": [
+        496,
+        489,
+        588,
+        560
+      ],
+      "viewport_box": [
+        496,
+        489,
+        588,
+        560
+      ],
+      "size": [
+        92,
+        71
+      ],
+      "avg_color": "#9a8f87"
+    }
+  ]
+}
