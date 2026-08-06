@@ -13,6 +13,9 @@ workspace/tasks/*/artifacts/
 workspace/tasks/*/export/
 workspace/.llm_settings.json
 
+# Web UI generated tasks (local only, not version-controlled)
+workspace/tasks/web_*/
+
 # OS
 .DS_Store
 Thumbs.db
