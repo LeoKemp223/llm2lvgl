@@ -50,12 +50,22 @@ git -C lv_port_linux_test submodule update --init --recursive
 
 ### 2. 安装核心依赖
 
+推荐 Ubuntu 22.04/24.04, Linux x86_64。
+
 ```bash
+# 1) 系统级构建依赖：SDL/FreeType 开发头文件 + 编译工具链
 sudo apt update
 sudo apt install -y \
   build-essential cmake pkg-config \
   python3 python3-pip python3-pil \
   libsdl2-dev libsdl2-image-dev libfreetype6-dev
+
+# 2) Python 运行时依赖
+#    - Pillow：代码用到了 9.1+ 的 Image.Resampling API，而 Ubuntu 22.04 的
+#      python3-pil 只有 9.0.1，必须用 pip 升级，否则 image-to-html 会报
+#      "module 'PIL.Image' has no attribute 'Resampling'"
+#    - httpx：llm_client.py 的依赖，doctor 不检查，必须手动装
+pip install -U "Pillow>=9.1" flask httpx
 ```
 
 ### 3. 做一次环境自检
@@ -71,6 +81,8 @@ tools/pipeline.sh doctor
 - 是否存在 HTML 参考图渲染工具（`chromium` 或 `wkhtmltoimage`）
 - 运行时主工程 `runtime_project/` 能否成功 `cmake configure`
 
+> 说明：`doctor` 只校验 Pillow 是否**存在**，不校验版本；也不会检查 `httpx` / `flask`。请按上一步的 `pip install` 装齐 Python 依赖，否则 analyze / generate / refine 等用到 LLM 的步骤会直接报错。
+
 ### 4. 跑内置 quickstart
 
 ```bash
@@ -84,7 +96,7 @@ tools/pipeline.sh quickstart
 
 说明：
 - `quickstart` 优先使用仓库已提供的 `reference/reference.png`，所以即使本机还没装浏览器截图工具，也能先跑通第一条闭环
-- 只有你自己新建 task，且 `reference.render_from_html = true` 时，才需要额外安装 `chromium` / `google-chrome` / `wkhtmltoimage`
+- 是否需要安装浏览器来渲染参考图，见下文「编译 + 截图 + 校验」一节的注意项
 
 如果这里已经跑通，你再开始创建自己的 task。
 
@@ -99,11 +111,25 @@ tools/pipeline.sh quickstart
 ### 启动
 
 ```bash
-pip install flask
-python3 tools/webui.py
+# Python 依赖（首次）：flask + httpx + Pillow>=9.1
+pip install -U flask httpx "Pillow>=9.1"
+
+python3 tools/webui.py                            # 默认仅本机访问 http://127.0.0.1:5000
+python3 tools/webui.py --host 0.0.0.0             # 开放到局域网 http://<本机IP>:5000（注意安全）
+python3 tools/webui.py --host 0.0.0.0 --port 8080 # 自定义端口
 ```
 
-默认监听 `http://localhost:5000`。
+默认监听 `http://localhost:5000`，可用 `--host` / `--port` 调整。
+
+#### LLM 设置（首次必看）
+
+analyze / generate / refine 等步骤依赖 LLM。在 Web UI 的「LLM 设置」面板填入：
+
+- **API Key**：OpenAI 兼容网关的密钥
+- **模型**：如 `gpt-4o`、`gpt-5.5` 等
+- **Base URL**：**必须填到 `/v1` 根路径**，例如 `https://api.openai.com/v1` 或 `https://your-gateway/v1`
+
+> 常见坑：Base URL 少了 `/v1` 时，请求会打到网关的网页前端（返回 HTML 而非 JSON），LLM 步骤会静默退化为启发式兜底，或报 `Expecting value: line 1 column 1`。模型名带 `gpt-5.x` / `o1` / `o3` / `o4` / `codex` 会自动走 Responses API（`/responses`），其余走 `/chat/completions`。
 
 ### 功能
 
@@ -185,8 +211,6 @@ curl -L "https://example.com/your-page" -o workspace/tasks/my_page_v1/input/inde
 如果页面有需要保留的图片，手动下载到 `input/assets/` 并修改 HTML 中的 `src` 路径为相对路径（如 `assets/logo.png`）。
 
 > 提示：生成器解析 HTML 中的 `h1/h2/h3/p/button/a/img` 等标签，转换为对应的 LVGL 控件。复杂的 CSS 布局和 JS 交互不会被转换，只提取结构和文本内容。
->
-> 如果这是一个 URL/HTML 任务，并且 `task.json` 里保持 `reference.render_from_html = true`，第一次 `run` 前还需要本机安装 `chromium` / `google-chrome` / `wkhtmltoimage` 之一；否则请手动放置 `reference/reference.png`，并把 `render_from_html` 改成 `false`。
 
 **方式 C：只有一张图片**
 
@@ -244,11 +268,10 @@ tools/pipeline.sh run workspace/tasks/my_page_v1/task.json
 - 当前 task 只注册并编译自己的 generated page，不再把其它 workspace 页面一起编进来
 - 这样可以避免“别的页面编译失败影响当前页面运行”
 
-注意：
-- 对于你自己新建的 task，默认 `reference.render_from_html = true`
-- 这意味着第一次 `run` 需要本机安装 `chromium` / `google-chrome` / `wkhtmltoimage` 之一
-- 如果你没有这些工具，可以先手动提供 `reference/reference.png`，并把 `render_from_html` 改为 `false`
-- 图片任务默认 `render_from_html = false`，直接拿源图做参考图
+注意（参考图渲染，权威说明）：
+- 对于新建的 HTML/URL 任务，默认 `reference.render_from_html = true`，第一次 `run` 需要本机装有下列浏览器之一：`chromium` / `chromium-browser` / `google-chrome` / `wkhtmltoimage`
+- 若没有这些工具，可手动放一张 `reference/reference.png`，并把 `render_from_html` 改为 `false`
+- 图片任务默认 `render_from_html = false`，直接拿源图当参考图，无需浏览器
 
 校验产物输出到 `artifacts/`：
 
@@ -330,7 +353,7 @@ LLM 生成的页面代码必须遵循以下约束（详见 [docs/llm_codegen_rul
 ## 目录结构
 
 ```text
-lvgl_agent/
+llm2lvgl/
 ├── runtime_project/       # 运行时主工程
 │   ├── src/               # main.c, page_registry, token_page, home_page
 │   ├── workflow/          # 页面级任务 schema 和配置
@@ -339,24 +362,13 @@ lvgl_agent/
 │   └── assets/            # 图片资源
 ├── workspace/             # LLM 任务驱动工作区
 │   ├── task.schema.json   # 任务定义 schema
-│   └── tasks/             # 各任务目录 (demo_v1, token_landing_v1, ...)
+│   └── tasks/             # 各任务目录 (demo_v1, web_*, ...)
 │       └── <task_id>/     # 每个任务的完整生命周期目录
 ├── profiles/              # 板级 profile (sim, esp32, stm32)
 ├── tools/                 # 流水线脚本 (Bash + Python)
 ├── lv_port_linux_test/    # LVGL v9.6.0-dev + SDL 模拟器（上游）
 └── docs/                  # 架构文档、生成规则、部署指南
 ```
-
-## 环境搭建
-
-推荐 Ubuntu 22.04/24.04, Linux x86_64。
-
-核心依赖见上面的“3 分钟上手”。  
-如果你要为新 task 自动生成 HTML 参考图，还需要额外安装下面任意一种工具：
-- `chromium`
-- `chromium-browser`
-- `google-chrome`
-- `wkhtmltoimage`
 
 ## 工程内部架构
 
