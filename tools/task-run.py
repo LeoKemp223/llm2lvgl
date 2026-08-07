@@ -168,7 +168,7 @@ def main() -> int:
                     img = Image.open(str(src_img))
                     if img.size != (vw, vh):
                         print(f"将参考图从 {img.size} 缩放到 ({vw}, {vh})")
-                        img = img.resize((vw, vh), Image.LANCZOS)
+                        img = img.resize((vw, vh), Image.Resampling.LANCZOS)
                     img.save(str(reference_path))
                 else:
                     shutil.copy2(str(src_img), str(reference_path))
