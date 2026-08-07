@@ -5,6 +5,48 @@
 <img width="1536" height="1024" alt="c117f1b5-d526-4a43-aa65-8082fe4e1efc" src="https://github.com/user-attachments/assets/0324339e-fe5e-4f3e-92c7-41c432db06aa" />
 
 
+## Web UI
+
+<img width="1280" height="605" alt="image" src="https://github.com/user-attachments/assets/dd6b0b62-f3c0-413d-a2c5-e66bb3453914" />
+<img width="1280" height="741" alt="image" src="https://github.com/user-attachments/assets/33aff7b7-c34d-4de4-9b13-ad10001e4e48" />
+<img width="1280" height="818" alt="image" src="https://github.com/user-attachments/assets/c7ce7790-779b-45a4-a13c-c01f5644bf5b" />
+
+除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
+
+### 启动
+
+```bash
+# Python 依赖（首次）：flask + httpx + Pillow>=9.1
+pip install -U flask httpx "Pillow>=9.1"
+
+python3 tools/webui.py                            # 默认仅本机访问 http://127.0.0.1:5000
+python3 tools/webui.py --host 0.0.0.0             # 开放到局域网 http://<本机IP>:5000（注意安全）
+python3 tools/webui.py --host 0.0.0.0 --port 8080 # 自定义端口
+```
+
+默认监听 `http://localhost:5000`，可用 `--host` / `--port` 调整。
+
+#### LLM 设置（首次必看）
+
+analyze / generate / refine 等步骤依赖 LLM。在 Web UI 的「LLM 设置」面板填入：
+
+- **API Key**：OpenAI 兼容网关的密钥
+- **模型**：如 `gpt-4o`、`gpt-5.5` 等
+- **Base URL**：**必须填到 `/v1` 根路径**，例如 `https://api.openai.com/v1` 或 `https://your-gateway/v1`
+
+> 常见坑：Base URL 少了 `/v1` 时，请求会打到网关的网页前端（返回 HTML 而非 JSON），LLM 步骤会静默退化为启发式兜底，或报 `Expecting value: line 1 column 1`。模型名带 `gpt-5.x` / `o1` / `o3` / `o4` / `codex` 会自动走 Responses API（`/responses`），其余走 `/chat/completions`。
+
+### 功能
+
+- 上传 HTML 文件（支持多文件：HTML + CSS/JS/图片）、截图或输入 URL
+- 选择 Board Profile 和任务名称
+- 一键运行完整流水线（init → generate → lint → build → validate → refine → export）
+- 实时日志流和步骤进度指示
+- 运行中可随时点击 Stop 按钮终止任务
+- 查看三栏对比图（参考 | 当前 | 热力图）和校验报告
+- 下载可移植 LVGL 代码包
+- LLM 设置（API Key、模型、Base URL）在界面内配置并持久化
+
 ## 核心流程
 
 ```text
@@ -99,48 +141,6 @@ tools/pipeline.sh quickstart
 - 是否需要安装浏览器来渲染参考图，见下文「编译 + 截图 + 校验」一节的注意项
 
 如果这里已经跑通，你再开始创建自己的 task。
-
-## Web UI
-
-<img width="1280" height="605" alt="image" src="https://github.com/user-attachments/assets/dd6b0b62-f3c0-413d-a2c5-e66bb3453914" />
-<img width="1280" height="741" alt="image" src="https://github.com/user-attachments/assets/33aff7b7-c34d-4de4-9b13-ad10001e4e48" />
-<img width="1280" height="818" alt="image" src="https://github.com/user-attachments/assets/c7ce7790-779b-45a4-a13c-c01f5644bf5b" />
-
-除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
-
-### 启动
-
-```bash
-# Python 依赖（首次）：flask + httpx + Pillow>=9.1
-pip install -U flask httpx "Pillow>=9.1"
-
-python3 tools/webui.py                            # 默认仅本机访问 http://127.0.0.1:5000
-python3 tools/webui.py --host 0.0.0.0             # 开放到局域网 http://<本机IP>:5000（注意安全）
-python3 tools/webui.py --host 0.0.0.0 --port 8080 # 自定义端口
-```
-
-默认监听 `http://localhost:5000`，可用 `--host` / `--port` 调整。
-
-#### LLM 设置（首次必看）
-
-analyze / generate / refine 等步骤依赖 LLM。在 Web UI 的「LLM 设置」面板填入：
-
-- **API Key**：OpenAI 兼容网关的密钥
-- **模型**：如 `gpt-4o`、`gpt-5.5` 等
-- **Base URL**：**必须填到 `/v1` 根路径**，例如 `https://api.openai.com/v1` 或 `https://your-gateway/v1`
-
-> 常见坑：Base URL 少了 `/v1` 时，请求会打到网关的网页前端（返回 HTML 而非 JSON），LLM 步骤会静默退化为启发式兜底，或报 `Expecting value: line 1 column 1`。模型名带 `gpt-5.x` / `o1` / `o3` / `o4` / `codex` 会自动走 Responses API（`/responses`），其余走 `/chat/completions`。
-
-### 功能
-
-- 上传 HTML 文件（支持多文件：HTML + CSS/JS/图片）、截图或输入 URL
-- 选择 Board Profile 和任务名称
-- 一键运行完整流水线（init → generate → lint → build → validate → refine → export）
-- 实时日志流和步骤进度指示
-- 运行中可随时点击 Stop 按钮终止任务
-- 查看三栏对比图（参考 | 当前 | 热力图）和校验报告
-- 下载可移植 LVGL 代码包
-- LLM 设置（API Key、模型、Base URL）在界面内配置并持久化
 
 ## 从 HTML 或图片生成自己的 LVGL 页面
 
