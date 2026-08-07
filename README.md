@@ -90,7 +90,7 @@ tools/pipeline.sh quickstart
 
 ## Web UI
 
-<img width="2160" height="1118" alt="PixPin_2026-04-26_22-44-35" src="https://github.com/user-attachments/assets/682ed3fb-7154-43cc-92ec-68649029b4e3" />
+<img width="1280" height="605" alt="image" src="https://github.com/user-attachments/assets/dd6b0b62-f3c0-413d-a2c5-e66bb3453914" />
 <img width="1280" height="741" alt="image" src="https://github.com/user-attachments/assets/33aff7b7-c34d-4de4-9b13-ad10001e4e48" />
 <img width="1280" height="818" alt="image" src="https://github.com/user-attachments/assets/c7ce7790-779b-45a4-a13c-c01f5644bf5b" />
 
