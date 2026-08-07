@@ -91,6 +91,8 @@ tools/pipeline.sh quickstart
 ## Web UI
 
 <img width="2160" height="1118" alt="PixPin_2026-04-26_22-44-35" src="https://github.com/user-attachments/assets/682ed3fb-7154-43cc-92ec-68649029b4e3" />
+<img width="1280" height="741" alt="image" src="https://github.com/user-attachments/assets/33aff7b7-c34d-4de4-9b13-ad10001e4e48" />
+<img width="1280" height="818" alt="image" src="https://github.com/user-attachments/assets/c7ce7790-779b-45a4-a13c-c01f5644bf5b" />
 
 除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
 
