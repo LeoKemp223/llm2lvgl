@@ -60,6 +60,31 @@ def _safe_task_id(task_id: str) -> str | None:
     return slug
 
 
+# Bounds for the per-task run log so a chatty pipeline step (or a subprocess
+# emitting very long lines) can't grow memory / SSE payloads / the browser DOM
+# without limit. ``log_offset`` counts lines dropped from the front, keeping the
+# SSE stream's cursor correct after truncation.
+LOG_MAX_LINES = 4000
+LOG_LINE_MAX = 2000
+
+
+def _append_log(run_state: dict, text: str) -> None:
+    """Append one line to run_state["log"], capping line length and total lines."""
+    line = text if len(text) <= LOG_LINE_MAX else text[:LOG_LINE_MAX] + " …(truncated)"
+    log = run_state["log"]
+    log.append(line)
+    over = len(log) - LOG_MAX_LINES
+    if over > 0:
+        del log[:over]
+        run_state["log_offset"] = run_state.get("log_offset", 0) + over
+
+
+def _extend_log(run_state: dict, text: str) -> None:
+    """Append many lines (e.g. captured subprocess stdout) through _append_log."""
+    for _ln in text.splitlines():
+        _append_log(run_state, _ln)
+
+
 def _safe_upload_suffix(filename: str, fallback: str = ".png") -> str:
     suffix = Path(filename or "").suffix.lower()
     return suffix if suffix in {".png", ".jpg", ".jpeg", ".bmp", ".webp"} else fallback
@@ -181,6 +206,7 @@ def _reconcile_run_state(task_id: str) -> dict:
                 inferred = {
                     "status": "done" if passed else "failed",
                     "log": [],
+                    "log_offset": 0,
                     "step": "export" if passed else "refine",
                     "exit_code": 0 if passed else 2,
                 }
@@ -198,7 +224,7 @@ def _reconcile_run_state(task_id: str) -> dict:
         run["exit_code"] = rc
         run["status"] = "done" if rc == 0 else "failed"
         if not run.get("_reconciled"):
-            run["log"].append(f"--- process exited with status {rc} ---")
+            _append_log(run, f"--- process exited with status {rc} ---")
             run["_reconciled"] = True
         _write_run_state(task_id, run)
         return run
@@ -600,6 +626,7 @@ def create_app() -> Flask:
             TASK_RUNS[tid] = {
                 "status": "running",
                 "log": [],
+                "log_offset": 0,
                 "step": "init",
                 "exit_code": None,
                 "started": time.time(),
@@ -621,12 +648,12 @@ def create_app() -> Flask:
                 run_state["proc"] = proc
                 for line in proc.stdout:  # type: ignore[union-attr]
                     line = line.rstrip("\n")
-                    run_state["log"].append(line)
+                    _append_log(run_state, line)
                     # Detect step changes from log output
                     ll = line.lower()
                     if "refin" in ll or "build-fix" in ll:
                         if run_state.get("step") != "refine":
-                            run_state["log"].append("--- refining with LLM; this step can take several minutes ---")
+                            _append_log(run_state, "--- refining with LLM; this step can take several minutes ---")
                         run_state["step"] = "refine"
                     elif "analysis" in ll or "analyz" in ll:
                         run_state["step"] = "analyze"
@@ -645,15 +672,15 @@ def create_app() -> Flask:
                 if run_rc == 0:
                     # export
                     run_state["step"] = "export"
-                    run_state["log"].append("--- exporting bundle ---")
+                    _append_log(run_state, "--- exporting bundle ---")
                     ep = subprocess.run(
                         [str(PIPELINE_SH), "export", str(tj)],
                         capture_output=True, text=True, cwd=str(REPO_ROOT),
                     )
                     if ep.stdout:
-                        run_state["log"].extend(ep.stdout.splitlines())
+                        _extend_log(run_state, ep.stdout)
                     if ep.stderr:
-                        run_state["log"].extend(ep.stderr.splitlines())
+                        _extend_log(run_state, ep.stderr)
                     run_state["exit_code"] = ep.returncode
                     run_state["status"] = "done" if ep.returncode == 0 else "failed"
                     _write_run_state(tid, run_state)
@@ -661,10 +688,10 @@ def create_app() -> Flask:
                     run_state["exit_code"] = run_rc
                     run_state["status"] = "failed"
                     if run_rc == 2:
-                        run_state["log"].append("--- validation threshold not met; artifacts are available for review ---")
+                        _append_log(run_state, "--- validation threshold not met; artifacts are available for review ---")
                     _write_run_state(tid, run_state)
             except Exception as exc:
-                run_state["log"].append(f"ERROR: {exc}")
+                _append_log(run_state, f"ERROR: {exc}")
                 run_state["status"] = "failed"
                 run_state["exit_code"] = -1
                 _write_run_state(tid, run_state)
@@ -690,7 +717,7 @@ def create_app() -> Flask:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
             except (ProcessLookupError, OSError):
                 proc.kill()
-        run["log"].append("--- stopped by user ---")
+        _append_log(run, "--- stopped by user ---")
         run["status"] = "stopped"
         run["exit_code"] = -15
         _write_run_state(tid, run)
@@ -713,9 +740,16 @@ def create_app() -> Flask:
                 if not run:
                     yield "event: done\ndata: {\"reason\":\"no_run\"}\n\n"
                     return
+                base = run.get("log_offset", 0)
                 log = run.get("log", [])
-                while cursor < len(log):
-                    yield f"event: log\ndata: {json.dumps(log[cursor])}\n\n"
+                if cursor < base:
+                    cursor = base  # client fell behind front-truncation; skip dropped lines
+                while cursor - base < len(log):
+                    try:
+                        line = log[cursor - base]
+                    except IndexError:
+                        break  # list trimmed concurrently; re-fetch next pass
+                    yield f"event: log\ndata: {json.dumps(line)}\n\n"
                     cursor += 1
                 step = run.get("step", "")
                 if step != last_step:

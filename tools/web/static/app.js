@@ -26,6 +26,11 @@
   let pendingAnalysis = null;
   let pendingTargetContext = null;
 
+  // Bounded ring buffer for the run log so a chatty step can't grow the DOM
+  // without limit and freeze the tab.
+  const LOG_MAX_LINES = 2000;
+  let _logLines = [];
+
   async function init() {
     bindStaticEvents();
     setDownloadEnabled(false);
@@ -61,6 +66,7 @@
     const clearLogBtn = $("#clear-log-btn");
     if (clearLogBtn) {
       clearLogBtn.addEventListener("click", () => {
+        _logLines = [];
         $(".log-box").textContent = "";
         $(".log-box").classList.remove("visible");
       });
@@ -316,6 +322,7 @@
     setRunningState(true);
     resetProgress();
     resetResults();
+    _logLines = [];
     $(".log-box").textContent = "";
     $(".log-box").classList.add("visible");
     appendLog("正在准备任务参数...");
@@ -1127,7 +1134,15 @@
   function appendLog(line) {
     const logBox = $(".log-box");
     logBox.classList.add("visible");
-    logBox.textContent += line + "\n";
+    // Strip stray CR and keep a bounded window so a chatty step can't grow
+    // the <pre> without limit and freeze the tab.
+    const clean = String(line).replace(/\r/g, "");
+    _logLines.push(clean);
+    if (_logLines.length > LOG_MAX_LINES) {
+      _logLines = _logLines.slice(-LOG_MAX_LINES);
+      _logLines.unshift(`--- 日志过长，仅保留最近 ${LOG_MAX_LINES} 行 ---`);
+    }
+    logBox.textContent = _logLines.join("\n") + "\n";
     logBox.scrollTop = logBox.scrollHeight;
   }
 

@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -171,6 +172,7 @@ def _do_stream(url: str, headers: dict, body: dict, parse_line) -> str:
                                 f"HTTP {status} (non-retryable): {resp.text[:300]}"
                             )
                         raise RuntimeError(f"HTTP {status}: {resp.text[:300]}")
+                    is_tty = sys.stdout.isatty()
                     chunks: list[str] = []
                     total_chars = 0
                     for line in resp.iter_lines():
@@ -180,9 +182,17 @@ def _do_stream(url: str, headers: dict, body: dict, parse_line) -> str:
                         if result:
                             chunks.append(result)
                             total_chars += len(result)
-                            print(f"\r[llm] generating... {total_chars} chars", end="", flush=True)
+                            # In a real terminal: refresh the same line with \r.
+                            # When piped (e.g. the Web UI subprocess) suppress the
+                            # per-chunk progress entirely so it doesn't coalesce into
+                            # one giant log line that freezes the browser.
+                            if is_tty:
+                                print(f"\r[llm] generating... {total_chars} chars", end="", flush=True)
                     if total_chars:
-                        print(f"\r[llm] done, {total_chars} chars        ", flush=True)
+                        if is_tty:
+                            print(f"\r[llm] done, {total_chars} chars        ", flush=True)
+                        else:
+                            print(f"[llm] done, {total_chars} chars", flush=True)
                     return "".join(chunks)
         except RuntimeError as exc:
             if "non-retryable" in str(exc):
