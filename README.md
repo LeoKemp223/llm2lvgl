@@ -8,8 +8,8 @@
 ## Web UI
 
 <img width="3751" height="1879" alt="image" src="https://github.com/user-attachments/assets/7c83cfc6-b645-4f31-9b0c-5dcd286fef61" />
-<img width="1880" height="1604" alt="image" src="https://github.com/user-attachments/assets/6df0e55e-e3e6-45e8-a142-7b69e227b3cb" />
 <img width="3034" height="1501" alt="image" src="https://github.com/user-attachments/assets/1e074c06-eb1a-470e-b629-89e6f63d6f0e" />
+<img width="1880" height="1604" alt="image" src="https://github.com/user-attachments/assets/6df0e55e-e3e6-45e8-a142-7b69e227b3cb" />
 
 除了命令行流水线，还提供了一个浏览器界面，可以拖拽上传 HTML/图片，一键完成生成、校验和导出。
 
