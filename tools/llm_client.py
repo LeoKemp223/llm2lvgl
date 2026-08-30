@@ -152,6 +152,25 @@ def _parse_responses_line(line: str) -> str | None:
     return None
 
 
+def _do_non_stream(url: str, headers: dict, body: dict) -> str:
+    """POST once without streaming; return choices[0].message.content.
+
+    Fallback for reasoning models (e.g. DeepSeek) that stream only
+    `reasoning_content` and no `content` deltas, but return the final answer
+    in `message.content` on a plain (non-streaming) response.
+    """
+    with httpx.Client(timeout=httpx.Timeout(connect=30, read=300, write=30, pool=30)) as client:
+        resp = client.post(url, json=body, headers=headers)
+        if resp.status_code != 200:
+            raise RuntimeError(f"HTTP {resp.status_code}: {resp.text[:300]}")
+        data = resp.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return ""
+        msg = choices[0].get("message") or {}
+        return msg.get("content") or ""
+
+
 def _do_stream(url: str, headers: dict, body: dict, parse_line) -> str:
     """POST a streaming request with retry; assemble text from SSE deltas.
 
@@ -238,18 +257,49 @@ def chat(
             "input": _messages_to_responses_input(messages),
             "max_output_tokens": max_tokens,
             "stream": True,
+            "thinking": {"type": "disabled"} if settings.get("thinking", "disabled") != "enabled" else {"type": "enabled"},
         }
         return _do_stream(url, headers, body, _parse_responses_line)
 
     url = base + "/chat/completions"
+    # Non-streaming first: DeepSeek (and other reasoning models) stream only
+    # `reasoning_content` for a very long time before emitting `content`, which
+    # can hang the request for minutes. A plain non-streaming call returns the
+    # final `message.content` promptly and reliably.
     body = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
-        "stream": True,
     }
-    return _do_stream(url, headers, body, _parse_chat_line)
+    # Disable the model's thinking/reasoning phase by default. Reasoning
+    # triples+ the completion-token bill (the tool only wants the answer, not
+    # the thought chain) and, for vision models, adds tens of seconds per
+    # call. Set "thinking": "enabled" in .llm_settings.json to re-enable it.
+    if settings.get("thinking", "disabled") != "enabled":
+        body["thinking"] = {"type": "disabled"}
+    body["stream"] = False
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            text = _do_non_stream(url, headers, body)
+            if text and text.strip():
+                return text
+            print(f"[llm_client] empty non-stream reply (attempt {attempt+1}/3), retrying...", flush=True)
+        except Exception as exc:
+            last_err = exc
+            wait = min(2 ** attempt, 20)
+            print(f"[llm_client] attempt {attempt+1}/3 failed: {exc}, retrying in {wait}s...", flush=True)
+            if attempt < 2:
+                time.sleep(wait)
+    # Streaming as a last-resort fallback (some gateways only support it).
+    print("[llm_client] non-streaming failed; falling back to streaming", flush=True)
+    try:
+        body_s = dict(body)
+        body_s["stream"] = True
+        return _do_stream(url, headers, body_s, _parse_chat_line) or ""
+    except Exception as exc:
+        raise RuntimeError(f"OpenAI API failed after 3 attempts: {last_err}; stream fallback: {exc}")
 
 
 def extract_code_block(response: str, lang: str = "c") -> str:
