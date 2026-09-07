@@ -316,6 +316,24 @@ def main() -> int:
         image_rel = task.get("input", {}).get("image_entry")
         if image_rel:
             image_path = resolve(task_path, image_rel)
+            # Down-scale large screenshots before sending to the LLM. The model
+            # only needs layout/color cues; a capped image slashes prompt size
+            # (1704x774 -> ~900KB base64 otherwise) and keeps generation fast.
+            try:
+                from PIL import Image as _PILImage
+                max_dim = int(os.environ.get("LVGL_VISION_MAX_DIM", "1024"))
+                with _PILImage.open(str(image_path)) as _im:
+                    if max(_im.size) > max_dim:
+                        ratio = max_dim / max(_im.size)
+                        new_size = (max(1, round(_im.size[0] * ratio)),
+                                    max(1, round(_im.size[1] * ratio)))
+                        out_path = task_path.parent / "generated" / "_vision_input.png"
+                        _im.resize(new_size, _PILImage.Resampling.LANCZOS).save(out_path)
+                        print(f"[generate-page] downscaled vision input "
+                              f"{image_path.name} -> {new_size} (max {max_dim})", flush=True)
+                        image_path = out_path
+            except Exception as _exc:
+                print(f"[generate-page] vision downscale skipped: {_exc}", flush=True)
         # Collect additional asset images from input dir
         input_dir = task_path.parent / "input"
         if input_dir.is_dir():
@@ -333,8 +351,17 @@ def main() -> int:
         image_path=image_path, asset_images=asset_images, asset_manifest=asset_manifest,
         analysis=analysis,
     )
-    response = llm_client.chat(messages)
-    c_code = llm_client.extract_code_block(response, "c")
+    # Reasoning models occasionally stream nothing (only thinking). Retry the
+    # whole generation if the extraction comes back empty.
+    c_code = ""
+    for attempt in range(1, 4):
+        response = llm_client.chat(messages)
+        c_code = llm_client.extract_code_block(response, "c")
+        if c_code and c_code.strip():
+            break
+        print(f"[generate-page] LLM returned empty content (attempt {attempt}/3), regenerating...", flush=True)
+    if not (c_code and c_code.strip()):
+        raise SystemExit("LLM returned empty content after 3 attempts")
 
     output_h.parent.mkdir(parents=True, exist_ok=True)
     output_c.parent.mkdir(parents=True, exist_ok=True)

@@ -23,6 +23,7 @@ Thumbs.db
 # Python
 __pycache__/
 *.pyc
+.venv/
 
 # Editor
 *.swp
